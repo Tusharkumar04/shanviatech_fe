@@ -1,42 +1,36 @@
-'use client';
+"use client";
 
 import Link from "next/link";
-import { ServiceItem } from "@/context/ServiceContext";
+import type { ServiceItem } from "@/context/ServiceContext";
+import FrameImage from "@/components/ui/FrameImage";
+import Icon from "@/components/ui/Icon";
 
 interface ServiceCardProps {
-    item: ServiceItem;
+  item: ServiceItem;
+  index: number;
 }
 
-export default function ServiceCard({ item }: ServiceCardProps) {
-    const serviceHref = item?.slug ? `/service/${item.slug}` : "#";
+/**
+ * A service as a single, fully clickable card. The picture reveals on scroll,
+ * tilts on desktop, and the whole card is one link so keyboard and screen
+ * reader users get one clear target.
+ */
+export default function ServiceCard({ item, index }: ServiceCardProps) {
+  const href = item?.slug ? `/service/${item.slug}` : "/services";
+  const name = item?.name || item?.title || "Service";
 
-    return (
-        <li className="grid-item wow technology-box animate__fadeInUp last-paragraph-no-margin">
-            <figure>
-                <div className="portfolio-img bg-deep-pink position-relative text-center overflow-hidden">
-                    <img src={item?.image} alt={item?.title} />
-                    <div className="portfolio-icon">
-                        <Link href={serviceHref}>
-                            <i className="fas fa-link text-extra-dark-gray" aria-hidden="true" />
-                        </Link>
-                    </div>
-                </div>
-                <figcaption className="bg-white">
-                    <div className="portfolio-hover-main text-center">
-                        <div className="portfolio-hover-box align-middle">
-                            <div className="portfolio-hover-content position-relative">
-                                <Link href={serviceHref}>
-                                    <span className="line-height-normal font-weight-600 text-small alt-font margin-5px-bottom text-extra-dark-gray text-uppercase d-block">
-                                        {item?.subtitle}
-                                    </span>
-                                </Link>
-                                <p className="text-medium-gray text-small text-uppercase">{item?.title}</p>
-                            </div>
-                        </div>
-                    </div>
-                </figcaption>
-            </figure>
-        </li>
-    );
+  return (
+    <article className="rail__item card service-card" data-reveal-item>
+      <Link href={href} className="service-card__link" data-cursor="view" data-cursor-label="Open">
+        <span className="card__index">
+          {String(index + 1).padStart(2, "0")} {item?.subtitle ? `— ${item.subtitle}` : ""}
+        </span>
+        <FrameImage src={item?.image} alt={name} aspect="wide" tilt />
+        <span className="h3 service-card__title">{name}</span>
+        <span className="service-card__more text-link" aria-hidden="true">
+          Explore <Icon name="arrow" />
+        </span>
+      </Link>
+    </article>
+  );
 }
-

@@ -1,109 +1,86 @@
-'use client';
+"use client";
 
-import { getExpertiseApiCall } from "@/services/api/expertiseApi";
-import { useEffect, useState } from "react";
 import Link from "next/link";
-
-import ai from "../../../public/images/ai.png"
+import { useMemo } from "react";
+import { getExpertiseApiCall } from "@/services/api/expertiseApi";
+import { useApi } from "@/hooks/useApi";
+import Opener from "@/components/ui/Opener";
+import FrameImage from "@/components/ui/FrameImage";
+import Icon from "@/components/ui/Icon";
+import SplitHeading from "@/components/ui/SplitHeading";
+import { EmptyState, ErrorState, LoadingState } from "@/components/ui/StatePanels";
+import { hrefFor, externalProps } from "@/utils/href";
 
 interface ExpertiseItem {
-    _id?: string;
-    title?: string;
-    link?: string;
-    description?: string;
-    image?: string;
-    order?: number;
-    tech?: string[] | any;
+  _id?: string;
+  title?: string;
+  link?: string;
+  description?: string;
+  image?: string;
+  order?: number;
+  tech?: string[] | unknown;
 }
 
 interface ExpertiseData {
-    items?: ExpertiseItem[];
+  items?: ExpertiseItem[];
 }
 
+/** Technology expertise: each practice as an alternating scene with its stack as chips. */
 export default function Technology() {
+  const { data, loading, error, reload } = useApi<ExpertiseData>(
+    () => getExpertiseApiCall() as Promise<ExpertiseData>,
+    [],
+    "Unable to load technology expertise.",
+  );
+  const items = useMemo(
+    () => [...(data?.items ?? [])].filter(Boolean).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [data],
+  );
 
-    const [expertiseData, setExpertiseData] = useState<ExpertiseData | null>(null);
-    console.log(expertiseData, 'expertiseData')
-    const [loading, setLoading] = useState(true);
+  return (
+    <>
+      <Opener crumbs={[{ label: "Technology" }]} title="Technology expertise" lede="The stacks we use to ship reliable products." />
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await getExpertiseApiCall();
-                setExpertiseData(response);
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setLoading(false);
-            }
-        };
+      <section className="section section--bone" aria-label="Technology">
+        <div className="wrap">
+          {loading ? <LoadingState label="Loading technology" /> : null}
+          {!loading && error ? <ErrorState message={error} onRetry={reload} /> : null}
+          {!loading && !error && items.length === 0 ? <EmptyState title="No technology expertise published yet." /> : null}
 
-        fetchData();
-    }, []);
-
-    if (loading) return <div>Loading...</div>;
-    if (!expertiseData) return null;
-    return (
-        <>
-            <div className="pt-0 pb-0">
-
-                <section className="wow animate__fadeIn bg-light-gray padding-35px-tb page-title-small top-space">
-                    <div className="container">
-                        <div className="row align-items-center">
-                            <div className="col-xl-8 col-md-6 text-center text-md-start">
-
-                                <h1 className="alt-font text-extra-dark-gray font-weight-600 mb-0 text-uppercase">Technology</h1>
-
-                            </div>
-                            <div className="col-xl-4 col-md-6 breadcrumb justify-content-center justify-content-md-end text-small alt-font sm-margin-10px-top">
-
-                                <ul>
-                                    <li><Link href="/" className="text-dark-gray">Home</Link></li>
-                                    <li><span className="text-dark-gray">Technology</span></li>
-                                </ul>
-
-                            </div>
-                        </div>
+          {!loading && !error
+            ? items.map((item, index) => {
+                const href = hrefFor(item.link);
+                const tech = Array.isArray(item.tech) ? (item.tech as string[]) : [];
+                return (
+                  <article key={item._id || index} className={`case ${index % 2 ? "case--flip" : ""}`} aria-labelledby={`tech-${index}`}>
+                    <div>
+                      <FrameImage src={item.image} alt="" aspect="wide" direction={index % 2 ? "right" : "left"} tilt />
                     </div>
-                </section>
-
-                {[...(expertiseData?.items ?? [])]
-                    .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0))
-                    .map((item: ExpertiseItem, index: number) => (
-                        <section className="wow animate__fadeIn pt-0 pb-0 my-6" key={item?._id || index}>
-                            <div className="container">
-                                <div className="row align-items-center">
-                                    <div className={`col-12 col-lg-5 ${index % 2 !== 0 ? "order-2 order-lg-2" : "order-1 order-lg-1"}`}>
-                                        <h5 className="alt-font text-black font-weight-600">{item?.title}</h5>
-                                        <p className="listInBx" dangerouslySetInnerHTML={{ __html: item?.description || "" }}></p>
-                                        <a href={`/${item.link}`} className="btn btn-light-gray btn-small text-extra-small border-radius-4 margin-10px-top"><i className="fas fa-play-circle icon-very-small margin-5px-right no-margin-left" aria-hidden="true" /> ALL advantages</a>
-                                        {item?.tech?.length > 0 && (
-                                            <div className="technologyName mt-4">
-                                                <ul>
-                                                    {item.tech.map((item: string, index: number) => (
-                                                        <li key={index}>{item}</li>
-                                                    ))}
-                                                </ul>
-                                            </div>
-                                        )}
-                                        {/* <div className="technologyName mt-4">
-                                            <ul>
-                                                <li><img src="/images/ai.png" alt="Shanvia Tech" /> Ai</li>
-                                                <li><img src="/images/machine-learning.png" alt="Shanvia Tech" /> Machine Learning</li>
-                                                <li><img src="/images/blockchain.png" alt="Shanvia Tech" /> Blockchain</li>
-                                            </ul>
-                                        </div> */}
-                                    </div>
-                                    <div className={`col-12 col-lg-7 text-center ${index % 2 !== 0 ? "order-1 order-lg-1 mb-3" : "order-22 order-lg-2 mb-3"}`}>
-                                        <img src={item?.image} alt={item?.title} className="w-100" />
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-                    ))}
-            </div>
-
-        </>
-    )
+                    <div>
+                      <span className="mono muted">{String(index + 1).padStart(2, "0")}</span>
+                      <SplitHeading as="h2" className="h2" options={{ type: "lines", when: "scroll" }}>
+                        <span id={`tech-${index}`}>{item.title}</span>
+                      </SplitHeading>
+                      {item.description ? <p className="lede">{item.description}</p> : null}
+                      {tech.length ? (
+                        <ul className="chips" aria-label={`${item.title} technologies`}>
+                          {tech.map((name, i) => (
+                            <li key={`${name}-${i}`} className="chip">{name}</li>
+                          ))}
+                        </ul>
+                      ) : null}
+                      {item.link ? (
+                        <Link href={href} className="text-link" style={{ marginTop: "2rem" }} {...externalProps(href)}>
+                          Learn more <Icon name="arrow" />
+                        </Link>
+                      ) : null}
+                    </div>
+                  </article>
+                );
+              })
+            : null}
+        </div>
+      </section>
+    </>
+  );
 }
-

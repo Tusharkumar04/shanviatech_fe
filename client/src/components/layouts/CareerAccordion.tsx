@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import Icon from "@/components/ui/Icon";
 
-interface JobItem {
+export interface JobItem {
   _id?: string;
   id?: string;
   title?: string;
@@ -18,118 +19,76 @@ interface JobItem {
   we_offer?: string[];
 }
 
-interface Props {
-  jobData: {
-    items?: JobItem[];
-  } | null;
-}
+const SECTIONS: Array<{ key: keyof JobItem; label: string }> = [
+  { key: "skills", label: "Skills" },
+  { key: "soft_skills", label: "Soft skills" },
+  { key: "responsibilities", label: "Responsibilities" },
+  { key: "requirements", label: "Requirements" },
+  { key: "we_offer", label: "We offer" },
+];
 
-const CareerAccordion: React.FC<Props> = ({ jobData }) => {
-  const jobs = useMemo(() => jobData?.items ?? [], [jobData]);
-  const [activeIndex, setActiveIndex] = useState<number>(0);
+/**
+ * Open positions as an accordion. Only one job is open at a time. Panels
+ * animate with the grid-rows trick (GPU-friendly, no height measuring).
+ */
+export default function CareerAccordion({ jobData }: { jobData: { items?: JobItem[] } | null }) {
+  const jobs = useMemo(() => (jobData?.items ?? []).filter(Boolean), [jobData]);
+  const [activeIndex, setActiveIndex] = useState(0);
 
-  const getPanelId = (job: JobItem, index: number) => {
-    const rawId = String(job?._id ?? job?.id ?? `job-${index}`);
-    const safeId = rawId.replace(/[^a-zA-Z0-9\-_:.]/g, "");
-    return `collapse-${safeId || index}`;
-  };
-
-  const handleToggle = (index: number) => {
-    setActiveIndex((prev) => (prev === index ? -1 : index));
-  };
+  if (jobs.length === 0) return null;
 
   return (
-    <div className="col-12">
-      <div className="panel-group accordion-event accordion-style2" id="accordion-main">
-        {jobs.map((job: JobItem, index: number) => {
-          const panelId = getPanelId(job, index);
-          const isOpen = activeIndex === index;
+    <ol className="jobs" style={{ listStyle: "none", padding: 0, margin: 0 }}>
+      {jobs.map((job, index) => {
+        const rawId = String(job._id ?? job.id ?? `job-${index}`);
+        const panelId = `job-panel-${rawId.replace(/[^a-zA-Z0-9\-_:.]/g, "") || index}`;
+        const buttonId = `${panelId}-button`;
+        const isOpen = activeIndex === index;
 
-          return (
-            <div className="panel panel-default" key={job?._id ?? job?.id ?? `job-${index}`}>
-              <div className="panel-heading">
-                <button
-                  type="button"
-                  className="accordion-toggle w-100 text-start border-0 bg-transparent"
-                  onClick={() => handleToggle(index)}
-                  aria-expanded={isOpen}
-                  aria-controls={panelId}
-                >
-                  <div className="panel-title d-flex justify-content-between align-items-center">
-                    <span className="alt-font font-weight-600 text-deep-pink tab-tag">
-                      {(index + 1).toString().padStart(2, "0")}
-                    </span>
-
-                    <span className="text-extra-dark-gray sm-w-80 d-inline-block me-auto">
-                      {job?.title}
-                    </span>
-
-                    <i className={`fas text-extra-dark-gray ${isOpen ? "fa-angle-up" : "fa-angle-down"}`} />
-                  </div>
-                </button>
-              </div>
-
-              <div id={panelId} className={`panel-collapse collapse ${isOpen ? "show" : ""}`}>
-                <div className="panel-body">
-                  <p>{job?.description}</p>
-
-                  <p><strong>Location:</strong> {job?.location}</p>
-                  <p><strong>Experience:</strong> {job?.experience}</p>
-                  <p><strong>Salary:</strong> {job?.salary}</p>
-                  <p><strong>Priority:</strong> {job?.priority}</p>
-
-                  <div>
-                    <strong className="mb-2 d-block">Skills:</strong>
-                    <ul className="list-style-12">
-                      {job?.skills?.map((skill: string, i: number) => (
-                        <li key={i}>{skill}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div>
-                    <strong className="mb-2 d-block">Soft Skills:</strong>
-                    <ul className="list-style-12">
-                      {job?.soft_skills?.map((skill: string, i: number) => (
-                        <li key={i}>{skill}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div>
-                    <strong className="mb-2 d-block">Responsibilities:</strong>
-                    <ul className="list-style-12">
-                      {job?.responsibilities?.map((res: string, i: number) => (
-                        <li key={i}>{res}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div>
-                    <strong className="mb-2 d-block">Requirements:</strong>
-                    <ul className="list-style-12">
-                      {job?.requirements?.map((req: string, i: number) => (
-                        <li key={i}>{req}</li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <div>
-                    <strong className="mb-2 d-block">We Offer:</strong>
-                    <ul className="list-style-12">
-                      {job?.we_offer?.map((offer: string, i: number) => (
-                        <li key={i}>{offer}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
+        return (
+          <li key={rawId} className={`job ${isOpen ? "is-open" : ""}`} data-reveal-item>
+            <h3 style={{ margin: 0 }}>
+              <button
+                type="button"
+                id={buttonId}
+                className="job__toggle"
+                aria-expanded={isOpen}
+                aria-controls={panelId}
+                onClick={() => setActiveIndex((prev) => (prev === index ? -1 : index))}
+              >
+                <span className="mono muted">{String(index + 1).padStart(2, "0")}</span>
+                <span className="job__title">{job.title}</span>
+                <Icon name={isOpen ? "minus" : "plus"} />
+              </button>
+            </h3>
+            <div id={panelId} role="region" aria-labelledby={buttonId} className="job__panel" hidden={!isOpen}>
+              <div className="job__inner">
+                {job.description ? <p className="lede" style={{ fontSize: "1.05rem" }}>{job.description}</p> : null}
+                <dl className="job__meta">
+                  {job.location ? (<><dt>Location</dt><dd>{job.location}</dd></>) : null}
+                  {job.experience ? (<><dt>Experience</dt><dd>{job.experience}</dd></>) : null}
+                  {job.salary ? (<><dt>Salary</dt><dd>{job.salary}</dd></>) : null}
+                  {job.priority ? (<><dt>Priority</dt><dd>{job.priority}</dd></>) : null}
+                </dl>
+                {SECTIONS.map(({ key, label }) => {
+                  const list = job[key] as string[] | undefined;
+                  if (!list?.length) return null;
+                  return (
+                    <div key={key} style={{ marginTop: "1.25rem" }}>
+                      <h4 className="note" style={{ margin: "0 0 0.5rem" }}>{label}</h4>
+                      <ul className="ticks">
+                        {list.map((item, i) => (
+                          <li key={`${String(key)}-${i}`}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-          );
-        })}
-      </div>
-    </div>
+          </li>
+        );
+      })}
+    </ol>
   );
-};
-
-export default CareerAccordion;
+}

@@ -1,156 +1,72 @@
-'use client';
+"use client";
 
+import { useMemo } from "react";
 import { getCaseStudiesApiCall } from "@/services/api/caseStudiesApi";
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useApi } from "@/hooks/useApi";
+import Opener from "@/components/ui/Opener";
+import FrameImage from "@/components/ui/FrameImage";
+import SplitHeading from "@/components/ui/SplitHeading";
+import { EmptyState, ErrorState, LoadingState } from "@/components/ui/StatePanels";
 
 interface CaseStudyItem {
-    _id?: string;
-    title?: string;
-    description?: string;
-    image?: string;
-    order?: number;
+  _id?: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  order?: number;
 }
 
 interface CaseStudiesPageData {
-    items?: CaseStudyItem[];
+  items?: CaseStudyItem[];
 }
 
+/**
+ * Case studies as alternating full-width scenes. Each row reveals its image
+ * with a clip and sticks the copy beside it on wide screens.
+ */
 export default function CaseStudies() {
+  const { data, loading, error, reload } = useApi<CaseStudiesPageData>(
+    () => getCaseStudiesApiCall() as Promise<CaseStudiesPageData>,
+    [],
+    "Unable to load case studies.",
+  );
+  const items = useMemo(
+    () => [...(data?.items ?? [])].filter(Boolean).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [data],
+  );
 
-    const [caseStudiesData, setCaseStudiesData] = useState<CaseStudiesPageData | null>(null);
-    const [error, setError] = useState("");
-    const [loading, setLoading] = useState(true);
+  return (
+    <>
+      <Opener crumbs={[{ label: "Case studies" }]} title="Case studies" lede="Selected work, from first brief to production." />
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await getCaseStudiesApiCall();
-                setCaseStudiesData(response as CaseStudiesPageData);
-            } catch (error) {
-                console.error(error);
-                setError("Unable to load case studies.");
-            } finally {
-                setLoading(false);
-            }
-        };
+      <section className="section section--bone" aria-label="Case studies">
+        <div className="wrap">
+          {loading ? <LoadingState label="Loading case studies" /> : null}
+          {!loading && error ? <ErrorState message={error} onRetry={reload} /> : null}
+          {!loading && !error && items.length === 0 ? <EmptyState title="No case studies published yet." /> : null}
 
-        fetchData();
-    }, []);
-
-    if (loading) return <div>Loading...</div>;
-    if (error) return <div>{error}</div>;
-    if (!caseStudiesData) return null;
-
-
-    return (
-        <>
-            <section className="wow animate__fadeIn bg-light-gray padding-35px-tb page-title-small top-space">
-                <div className="container">
-                    <div className="row align-items-center">
-                        <div className="col-xl-8 col-md-6 text-center text-md-start">
-                            <h1 className="alt-font text-extra-dark-gray font-weight-600 mb-0 text-uppercase">Case Studies</h1>
-                        </div>
-                        <div className="col-xl-4 col-md-6 breadcrumb justify-content-center justify-content-md-end text-small alt-font sm-margin-10px-top">
-                            <ul>
-                                <li><Link href="/" className="text-dark-gray">Home</Link></li>
-                                <li><span className="text-dark-gray">Case Studies</span></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section className="service-section">
-                <div className="container">
-                    {[...(caseStudiesData?.items ?? [])]
-                        .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0))
-                        .map((item: CaseStudyItem, index: number) => (
-                            <div key={item?._id || index}>
-                                <div className="service-row">
-                                    <div className="service-image">
-                                        <img src={item?.image} alt={item?.title} />
-                                    </div>
-                                    <div className="service-content">
-                                        <h2 className="text-extra-dark-gray">{item?.title}</h2>
-                                        <p>
-                                            {item?.description}
-                                        </p>
-                                    </div>
-                                </div>
-                                <hr />
-                            </div>
-                        ))}
-
-                </div>
-            </section>
-
-            <style jsx>{`
-               
-
-.service-section {
-  padding: 60px 20px;
+          {!loading && !error
+            ? items.map((item, index) => (
+                <article
+                  key={item._id || index}
+                  className={`case ${index % 2 ? "case--flip" : ""}`}
+                  aria-labelledby={`case-${index}`}
+                >
+                  <div>
+                    <FrameImage src={item.image} alt="" aspect="wide" direction={index % 2 ? "right" : "left"} tilt />
+                  </div>
+                  <div>
+                    <span className="mono muted">{String(index + 1).padStart(2, "0")}</span>
+                    <SplitHeading as="h2" className="h2" options={{ type: "lines", when: "scroll" }}>
+                      <span id={`case-${index}`}>{item.title}</span>
+                    </SplitHeading>
+                    {item.description ? <p className="lede">{item.description}</p> : null}
+                  </div>
+                </article>
+              ))
+            : null}
+        </div>
+      </section>
+    </>
+  );
 }
-
-.container {
-  max-width: 1200px;
-  margin: auto;
-}
-
-.service-row {
-  display: flex;
-  align-items: center;
-  gap: 50px;
-  /*margin-bottom: 60px;*/
-}
-
-.service-image {
-  flex: 1;
-}
-
-.service-image img {
-  width: 100%;
-  border-radius: 4px;
-  object-fit: cover;
-}
-
-.service-content {
-  flex: 1;
-}
-
-.service-content h2 {
-  font-size: 28px;
-  margin-bottom: 20px;
-  font-weight: 600;
-  line-height: 1.2;
-}
-
-.service-content p {
-  font-size: 15px;
-  line-height: 1.8;
-  color: #555;
-}
-
-hr {
-  border: none;
-  border-top: 1px solid #ddd;
-  margin: 40px 0;
-}
-
-/* Responsive */
-@media (max-width: 992px) {
-  .service-row {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .service-content h2 {
-    font-size: 24px;
-  }
-}
-            `}</style>
-
-        </>
-    )
-}
-

@@ -1,39 +1,100 @@
-'use client';
+"use client";
 
-import { ServiceItem, useServicesData } from "@/context/ServiceContext";
+import Link from "next/link";
+import { useEffect, useRef } from "react";
+import { useServicesData } from "@/context/ServiceContext";
 import ServiceCard from "./ServiceCard";
+import SplitHeading from "@/components/ui/SplitHeading";
+import Icon from "@/components/ui/Icon";
+import { ensureGsap, gsap } from "@/motion/gsap";
+import { LoadingState, ErrorState } from "@/components/ui/StatePanels";
 
+const RAIL_LIMIT = 6;
+
+/**
+ * Scene 03: services as a horizontal rail. On desktop, the section pins while
+ * the rail travels sideways under the scroll. Everywhere else, the rail is a
+ * plain stack so nothing depends on the pin.
+ */
 export default function HomeService() {
-    const { serviceData, loading, error } = useServicesData();
+  const { serviceData, loading, error } = useServicesData();
+  const pin = useRef<HTMLDivElement>(null);
+  const track = useRef<HTMLDivElement>(null);
 
-    if (loading) return <div>Loading...</div>;
-    if (error) return <div>{error}</div>;
+  const items = (serviceData?.services ?? [])
+    .filter((item) => item?.show_in_page)
+    .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0))
+    .slice(0, RAIL_LIMIT);
 
-    return (
-        <>
-            <section className="bg-light-gray wow animate__fadeIn">
-                <div className="container">
-                    <div className="row justify-content-center">
-                        <div className="col-12 col-lg-8 col-md-8 col-sm-8 margin-eight-bottom md-margin-40px-bottom sm-margin-30px-bottom text-center">
-                            <div className="alt-font text-dark-gray text-small-14 margin-5px-bottom text-uppercase">Our Services</div>
-                            <h5 className="alt-font text-extra-dark-gray font-weight-600 mb-0">As a leading provider of business and technology services</h5>
-                        </div>
-                    </div>
-                    <div className="row">
-                        <div className="col-12 filter-content overflow-hidden">
-                            <ul className="hover-option6 lightbox-portfolio portfolio-wrapper grid grid-3col xl-grid-3col lg-grid-3col md-grid-2col sm-grid-2col xs-grid-1col gutter-large">
-                                <li className="grid-sizer"></li>
-                                {serviceData?.services
-                                    ?.filter((item: ServiceItem) => item?.show_in_page)
-                                    ?.slice(0, 6)
-                                    ?.map((item: ServiceItem, index: number) => (
-                                        <ServiceCard key={item?._id || item?.slug || index} item={item} />
-                                    ))}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </>
-    );
+  useEffect(() => {
+    const pinEl = pin.current;
+    const trackEl = track.current;
+    if (!pinEl || !trackEl || !items.length) return;
+    ensureGsap();
+
+    const mm = gsap.matchMedia();
+    mm.add("(min-width: 1000px) and (prefers-reduced-motion: no-preference)", () => {
+      pinEl.classList.add("is-pinned");
+      const distance = () => Math.max(0, trackEl.scrollWidth - window.innerWidth);
+      const tween = gsap.to(trackEl, {
+        x: () => -distance(),
+        ease: "none",
+        scrollTrigger: {
+          trigger: pinEl,
+          start: "top top+=76",
+          end: () => `+=${distance()}`,
+          pin: true,
+          scrub: 0.6,
+          invalidateOnRefresh: true,
+          anticipatePin: 1,
+        },
+      });
+      return () => {
+        tween.scrollTrigger?.kill();
+        tween.kill();
+        pinEl.classList.remove("is-pinned");
+        gsap.set(trackEl, { clearProps: "transform" });
+      };
+    });
+    return () => mm.revert();
+  }, [items.length]);
+
+  return (
+    <section className="section section--ink-2" aria-labelledby="services-title">
+      <div className="wrap">
+        <div className="intro-head intro-head--row">
+          <div>
+            <p className="eyebrow">
+              <span className="eyebrow__index">03</span>
+              Our services
+            </p>
+            <SplitHeading as="h2" className="h2" options={{ type: "lines", when: "scroll" }}>
+              <span id="services-title">Business &amp; technology, end to end</span>
+            </SplitHeading>
+          </div>
+          <div style={{ display: "grid", gap: "1.25rem", justifyItems: "start" }}>
+            <p className="lede" style={{ fontSize: "clamp(1.1rem, 1.6vw, 1.35rem)" }}>
+              As a leading provider of business and technology services.
+            </p>
+            <Link href="/services" className="text-link">
+              All services <Icon name="arrow" />
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {loading ? <LoadingState label="Loading services" /> : null}
+      {error ? <div className="wrap"><ErrorState message={error} /></div> : null}
+
+      {!loading && !error ? (
+        <div ref={pin} className="rail">
+          <div ref={track} className="rail__track rail__track--cards" style={{ paddingInline: "var(--gutter)" }}>
+            {items.map((item, index) => (
+              <ServiceCard key={item._id || item.slug || index} item={item} index={index} />
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
 }

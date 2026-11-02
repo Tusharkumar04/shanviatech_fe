@@ -1,538 +1,407 @@
-'use client';
+"use client";
 
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { v4 as uuidv4 } from "uuid";
-import {
-    createReachUsApiCall,
-    sendReachOtpApiCall,
-    verifyReachOtpApiCall,
-} from "@/services/api/reachUsApi";
+import { createReachUsApiCall, sendReachOtpApiCall, verifyReachOtpApiCall } from "@/services/api/reachUsApi";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { getCmsApiCall } from "@/services/api/cmsApi";
+import { useApi } from "@/hooks/useApi";
+import Opener from "@/components/ui/Opener";
+import FrameImage from "@/components/ui/FrameImage";
+import Icon from "@/components/ui/Icon";
+import Magnetic from "@/components/ui/Magnetic";
+import RevealGroup from "@/components/ui/RevealGroup";
+import SplitHeading from "@/components/ui/SplitHeading";
+import { ErrorState, LoadingState } from "@/components/ui/StatePanels";
+import { hrefFor, externalProps } from "@/utils/href";
 
 interface FormData {
-    name: string;
-    email: string;
-    mobile: string;
-    subject: string;
-    message: string;
+  name: string;
+  email: string;
+  mobile: string;
+  subject: string;
+  message: string;
 }
 
 interface ReachSectionData {
-    image?: string;
-    title?: string;
-    description?: string;
-    link?: string;
-    button_title?: string;
+  image?: string;
+  title?: string;
+  description?: string;
+  link?: string;
+  button_title?: string;
 }
+
+interface Address {
+  _id?: string;
+  locality?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  email?: string;
+}
+
+const EMPTY: FormData = { name: "", email: "", mobile: "", subject: "", message: "" };
 
 // Stable identity for OTP proofs; survives a page refresh like the survey's guestId.
 const getUid = () => {
-    if (typeof window === "undefined") return "";
-    let id = localStorage.getItem("reachUid");
-    if (!id) {
-        id = uuidv4();
-        localStorage.setItem("reachUid", id);
-    }
-    return id;
+  if (typeof window === "undefined") return "";
+  let id = localStorage.getItem("reachUid");
+  if (!id) {
+    id = uuidv4();
+    localStorage.setItem("reachUid", id);
+  }
+  return id;
 };
 
+/**
+ * Reach us: contact details beside a form. Submitting sends an email code
+ * first (dialog), then creates the enquiry. A verified email skips the code.
+ */
 export default function ReachUs() {
-    const { siteData } = useSiteSettings();
-    const [formData, setFormData] = useState<FormData>({
-        name: "",
-        email: "",
-        mobile: "",
-        subject: "",
-        message: "",
-    });
+  const { siteData } = useSiteSettings();
+  const cms = useApi<{ reach_us?: ReachSectionData }>(() => getCmsApiCall() as Promise<{ reach_us?: ReachSectionData }>, [], "Unable to load this section.");
+  const cmsData = cms.data?.reach_us ?? null;
 
-    const [errors, setErrors] = useState<Partial<FormData>>({});
-    const [submitting, setSubmitting] = useState(false);
-    const [submitMessage, setSubmitMessage] = useState("");
-    const [submitError, setSubmitError] = useState("");
+  const [formData, setFormData] = useState<FormData>(EMPTY);
+  const [errors, setErrors] = useState<Partial<FormData>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState("");
+  const [submitError, setSubmitError] = useState("");
 
-    // ===== OTP verification =====
-    const [otpOpen, setOtpOpen] = useState(false);
-    const [otpValue, setOtpValue] = useState("");
-    const [otpError, setOtpError] = useState("");
-    const [otpNotice, setOtpNotice] = useState("");
-    const [otpBusy, setOtpBusy] = useState(false);
-    const [resendIn, setResendIn] = useState(0);
-    // Set once the OTP for the current email is verified, so a resubmit of the
-    // same form skips straight to the create call.
-    const [verifiedEmail, setVerifiedEmail] = useState("");
+  // OTP verification
+  const [otpOpen, setOtpOpen] = useState(false);
+  const [otpValue, setOtpValue] = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [otpNotice, setOtpNotice] = useState("");
+  const [otpBusy, setOtpBusy] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+  // Set once the OTP for the current email is verified, so a resubmit skips the code.
+  const [verifiedEmail, setVerifiedEmail] = useState("");
+  const otpInput = useRef<HTMLInputElement>(null);
+  const otpDialog = useRef<HTMLDivElement>(null);
 
-    const [cmsData, setCmsData] = useState<ReachSectionData | null>(null);
-    const [loading, setLoading] = useState(true);
+  // Resend cooldown
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const timer = setTimeout(() => setResendIn((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendIn]);
 
-    // Tick the resend cooldown down to zero.
-    useEffect(() => {
-        if (resendIn <= 0) return;
-        const timer = setTimeout(() => setResendIn((s) => s - 1), 1000);
-        return () => clearTimeout(timer);
-    }, [resendIn]);
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await getCmsApiCall();
-                setCmsData(response?.reach_us as ReachSectionData);
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
-    }, []);
-
-    const handleInputChange = (
-        e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-    ) => {
-        setFormData((prev) => ({
-            ...prev,
-            [e.target.name]: e.target.value,
-        }));
-
-
-        setErrors((prev) => ({
-            ...prev,
-            [e.target.name]: "",
-        }));
+  // Dialog: focus the code field on open, close on Escape.
+  useEffect(() => {
+    if (!otpOpen) return;
+    otpInput.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") cancelOtp();
     };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+    // cancelOtp reads only stable setters and the busy flag
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otpOpen, otpBusy]);
 
-    const validate = () => {
-        const newErrors: Partial<FormData> = {};
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    setErrors((prev) => ({ ...prev, [e.target.name]: "" }));
+  };
 
-        if (!formData.name.trim()) {
-            newErrors.name = "Name is required";
-        } else if (formData.name.trim().length < 2) {
-            newErrors.name = "Name must be at least 2 characters";
-        } else if (!/^[a-zA-Z\s.'-]+$/.test(formData.name.trim())) {
-            newErrors.name = "Name contains invalid characters";
-        }
+  const validate = () => {
+    const next: Partial<FormData> = {};
+    if (!formData.name.trim()) next.name = "Name is required";
+    else if (formData.name.trim().length < 2) next.name = "Name must be at least 2 characters";
+    else if (!/^[a-zA-Z\s.'-]+$/.test(formData.name.trim())) next.name = "Name contains invalid characters";
 
-        if (!formData.email.trim()) {
-            newErrors.email = "Email is required";
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-            newErrors.email = "Invalid email format";
-        }
+    if (!formData.email.trim()) next.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) next.email = "Invalid email format";
 
-        const mobileDigits = formData.mobile.replace(/\D/g, "");
-        if (!mobileDigits) {
-            newErrors.mobile = "Mobile is required";
-        } else if (!/^[0-9]{10}$/.test(mobileDigits)) {
-            newErrors.mobile = "Mobile number must be 10 digits";
-        }
+    const digits = formData.mobile.replace(/\D/g, "");
+    if (!digits) next.mobile = "Mobile is required";
+    else if (!/^[0-9]{10}$/.test(digits)) next.mobile = "Mobile number must be 10 digits";
 
-        if (!formData.subject.trim()) {
-            newErrors.subject = "Subject is required";
-        } else if (formData.subject.trim().length < 3) {
-            newErrors.subject = "Subject must be at least 3 characters";
-        }
+    if (!formData.subject.trim()) next.subject = "Subject is required";
+    else if (formData.subject.trim().length < 3) next.subject = "Subject must be at least 3 characters";
 
-        if (!formData.message.trim()) {
-            newErrors.message = "Message is required";
-        } else if (formData.message.trim().length < 10) {
-            newErrors.message = "Message must be at least 10 characters";
-        }
+    if (!formData.message.trim()) next.message = "Message is required";
+    else if (formData.message.trim().length < 10) next.message = "Message must be at least 10 characters";
+    return next;
+  };
 
-        return newErrors;
-    };
+  const normalizedEmail = () => formData.email.trim().toLowerCase();
 
-    const normalizedEmail = () => formData.email.trim().toLowerCase();
+  /** Create the enquiry once the email is verified. */
+  const submitReach = async () => {
+    try {
+      setSubmitting(true);
+      setSubmitError("");
+      await createReachUsApiCall({
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        mobile: formData.mobile.replace(/\D/g, ""),
+        subject: formData.subject.trim(),
+        message: formData.message.trim(),
+        uid: getUid(),
+      });
+      setSubmitMessage("Message sent successfully!");
+      setOtpOpen(false);
+      setOtpValue("");
+      setOtpNotice("");
+      setOtpError("");
+      setVerifiedEmail("");
+      setFormData(EMPTY);
+    } catch (error) {
+      console.error(error);
+      setSubmitError(error instanceof Error && error.message ? error.message : "Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-    /** Send the create call once the email is verified. */
-    const submitReach = async () => {
-        try {
-            setSubmitting(true);
-            setSubmitError("");
-
-            await createReachUsApiCall({
-                name: formData.name.trim(),
-                email: formData.email.trim(),
-                mobile: formData.mobile.replace(/\D/g, ""),
-                subject: formData.subject.trim(),
-                message: formData.message.trim(),
-                uid: getUid(),
-            });
-
-            setSubmitMessage("Message sent successfully!");
-            setOtpOpen(false);
-            setOtpValue("");
-            setOtpNotice("");
-            setOtpError("");
-            setVerifiedEmail("");
-            setFormData({
-                name: "",
-                email: "",
-                mobile: "",
-                subject: "",
-                message: "",
-            });
-        } catch (error) {
-            console.error(error);
-            const message =
-                error instanceof Error && error.message
-                    ? error.message
-                    : "Something went wrong. Please try again.";
-            setSubmitError(message);
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-
-        setSubmitMessage("");
-        setSubmitError("");
-
-        const validationErrors = validate();
-
-        if (Object.keys(validationErrors).length > 0) {
-            setErrors(validationErrors);
-            return;
-        }
-
-        // Already verified in this session (e.g. after editing an unrelated
-        // field) — no need to send another OTP.
-        if (verifiedEmail && verifiedEmail === normalizedEmail()) {
-            await submitReach();
-            return;
-        }
-
-        try {
-            setSubmitting(true);
-
-            const result = await sendReachOtpApiCall({
-                uid: getUid(),
-                channel: "email",
-                target: normalizedEmail(),
-            });
-
-            if (result?.errorCode) {
-                setSubmitError(
-                    result.message || "We couldn't send the verification code. Please try again."
-                );
-                return;
-            }
-
-            // A prior session already proved this email — go straight to submit.
-            if (result?.details?.status === "verified") {
-                setVerifiedEmail(normalizedEmail());
-                await submitReach();
-                return;
-            }
-
-            setOtpValue("");
-            setOtpError("");
-            setOtpNotice(`We've emailed a verification code to ${normalizedEmail()}.`);
-            setResendIn(result?.details?.resend_available_in_seconds ?? 60);
-            setOtpOpen(true);
-        } catch (error) {
-            console.error(error);
-            setSubmitError("Something went wrong. Please try again.");
-        } finally {
-            setSubmitting(false);
-        }
-    };
-
-    const handleVerifyOtp = async () => {
-        if (otpBusy) return;
-
-        const otp = otpValue.trim();
-        if (!/^[0-9]{4,8}$/.test(otp)) {
-            setOtpError("Please enter the code we sent you.");
-            return;
-        }
-
-        setOtpBusy(true);
-        setOtpError("");
-
-        const result = await verifyReachOtpApiCall({
-            uid: getUid(),
-            channel: "email",
-            target: normalizedEmail(),
-            otp,
-        });
-
-        setOtpBusy(false);
-
-        if (result?.errorCode) {
-            setOtpError(result.message || "That code wasn't right. Please try again.");
-            return;
-        }
-
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setSubmitMessage("");
+    setSubmitError("");
+    const found = validate();
+    if (Object.keys(found).length > 0) {
+      setErrors(found);
+      return;
+    }
+    if (verifiedEmail && verifiedEmail === normalizedEmail()) {
+      await submitReach();
+      return;
+    }
+    try {
+      setSubmitting(true);
+      const result = await sendReachOtpApiCall({ uid: getUid(), channel: "email", target: normalizedEmail() });
+      if (result?.errorCode) {
+        setSubmitError(result.message || "We couldn't send the verification code. Please try again.");
+        return;
+      }
+      // A prior session already proved this email: go straight to submit.
+      if (result?.details?.status === "verified") {
         setVerifiedEmail(normalizedEmail());
         await submitReach();
-    };
+        return;
+      }
+      setOtpValue("");
+      setOtpError("");
+      setOtpNotice(`We've emailed a verification code to ${normalizedEmail()}.`);
+      setResendIn(result?.details?.resend_available_in_seconds ?? 60);
+      setOtpOpen(true);
+    } catch (error) {
+      console.error(error);
+      setSubmitError("Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-    const handleResendOtp = async () => {
-        if (resendIn > 0 || otpBusy) return;
+  const handleVerifyOtp = async () => {
+    if (otpBusy) return;
+    const otp = otpValue.trim();
+    if (!/^[0-9]{4,8}$/.test(otp)) {
+      setOtpError("Please enter the code we sent you.");
+      return;
+    }
+    setOtpBusy(true);
+    setOtpError("");
+    const result = await verifyReachOtpApiCall({ uid: getUid(), channel: "email", target: normalizedEmail(), otp });
+    setOtpBusy(false);
+    if (result?.errorCode) {
+      setOtpError(result.message || "That code wasn't right. Please try again.");
+      return;
+    }
+    setVerifiedEmail(normalizedEmail());
+    await submitReach();
+  };
 
-        setOtpBusy(true);
-        setOtpError("");
-        setOtpNotice("");
+  const handleResendOtp = async () => {
+    if (resendIn > 0 || otpBusy) return;
+    setOtpBusy(true);
+    setOtpError("");
+    setOtpNotice("");
+    const result = await sendReachOtpApiCall({ uid: getUid(), channel: "email", target: normalizedEmail() });
+    setOtpBusy(false);
+    if (result?.errorCode) {
+      setOtpError(result.message || "We couldn't resend the code. Please try again.");
+      if (result?.details?.retry_after_seconds) setResendIn(result.details.retry_after_seconds);
+      return;
+    }
+    setOtpValue("");
+    setOtpNotice(`We've emailed a new verification code to ${normalizedEmail()}.`);
+    setResendIn(result?.details?.resend_available_in_seconds ?? 60);
+  };
 
-        const result = await sendReachOtpApiCall({
-            uid: getUid(),
-            channel: "email",
-            target: normalizedEmail(),
-        });
+  /** Abandon verification and return to the form to fix a typo. */
+  function cancelOtp() {
+    if (otpBusy) return;
+    setOtpOpen(false);
+    setOtpValue("");
+    setOtpError("");
+    setOtpNotice("");
+    setResendIn(0);
+  }
 
-        setOtpBusy(false);
+  const addresses = ((siteData?.addresses ?? []) as Address[]).filter(Boolean);
+  const invalid = (name: keyof FormData) => (errors[name] ? true : undefined);
+  const describedBy = (name: keyof FormData) => (errors[name] ? `reach-${name}-error` : undefined);
+  const fieldError = (name: keyof FormData) =>
+    errors[name] ? (
+      <span id={`reach-${name}-error`} className="field__error" role="alert">
+        {errors[name]}
+      </span>
+    ) : null;
 
-        if (result?.errorCode) {
-            setOtpError(result.message || "We couldn't resend the code. Please try again.");
-            if (result?.details?.retry_after_seconds) {
-                setResendIn(result.details.retry_after_seconds);
-            }
-            return;
-        }
+  const cmsHref = hrefFor(cmsData?.link);
 
-        setOtpValue("");
-        setOtpNotice(`We've emailed a new verification code to ${normalizedEmail()}.`);
-        setResendIn(result?.details?.resend_available_in_seconds ?? 60);
-    };
+  return (
+    <>
+      <Opener crumbs={[{ label: "Reach us" }]} title="Reach us" lede={cmsData?.description} />
 
-    /** Abandon verification and return to the form to fix a typo. */
-    const cancelOtp = () => {
-        if (otpBusy) return;
-        setOtpOpen(false);
-        setOtpValue("");
-        setOtpError("");
-        setOtpNotice("");
-        setResendIn(0);
-    };
+      <section className="section section--bone" aria-label="Contact">
+        <div className="wrap split split--wide-left">
+          <div>
+            {cms.loading ? <LoadingState label="Loading" /> : null}
+            {!cms.loading && cms.error ? <ErrorState message={cms.error} onRetry={cms.reload} /> : null}
+            {cmsData?.image ? <FrameImage src={cmsData.image} alt="" aspect="tall" direction="left" /> : null}
+            {cmsData?.title ? (
+              <>
+                <p className="eyebrow" style={{ marginTop: "2rem" }}>
+                  <span className="eyebrow__index">01</span>
+                  Get in touch
+                </p>
+                <SplitHeading as="h2" className="h2" options={{ type: "lines", when: "scroll" }}>
+                  <span>{cmsData.title}</span>
+                </SplitHeading>
+              </>
+            ) : null}
 
-    return (
-        <>
+            {addresses.length ? (
+              <RevealGroup className="addresses" >
+                {addresses.map((item, i) => (
+                  <address key={item._id || i} className="address card" data-reveal-item style={{ fontStyle: "normal" }}>
+                    <span className="note">Office {item.city}</span>
+                    <p style={{ margin: "0.75rem 0 0.5rem" }}>
+                      {[item.locality, item.city, item.state, item.country].filter(Boolean).join(", ")}
+                    </p>
+                    {item.email ? (
+                      <a className="text-link" href={`mailto:${item.email}`}>
+                        {item.email}
+                      </a>
+                    ) : null}
+                  </address>
+                ))}
+              </RevealGroup>
+            ) : null}
 
-            <section className="wow animate__fadeIn bg-light-gray padding-35px-tb page-title-small top-space">
-                <div className="container">
-                    <div className="row align-items-center">
-                        <div className="col-xl-8 col-md-6 text-center text-md-start">
+            {cmsData?.button_title && cmsData.link ? (
+              <div style={{ marginTop: "2rem" }}>
+                <Link href={cmsHref} className="btn" {...externalProps(cmsHref)}>
+                  {cmsData.button_title} <Icon name="arrow" className="btn__arrow" />
+                </Link>
+              </div>
+            ) : null}
+          </div>
 
-                            <h1 className="alt-font text-extra-dark-gray font-weight-600 mb-0 text-uppercase">Reach us</h1>
-
-                        </div>
-                        <div className="col-xl-4 col-md-6 breadcrumb justify-content-center justify-content-md-end text-small alt-font sm-margin-10px-top">
-
-                            <ul>
-                                <li><Link href="/" className="text-dark-gray">Home</Link></li>
-                                <li className="text-dark-gray">Reach us</li>
-                            </ul>
-                        </div>
-                    </div>
+          <div>
+            <p className="eyebrow">
+              <span className="eyebrow__index">02</span>
+              Send a message
+            </p>
+            <form onSubmit={handleSubmit} className="form" noValidate aria-describedby={submitError ? "reach-form-error" : undefined}>
+              {submitMessage ? (
+                <div className="status status--success" role="status">
+                  <p className="status__text">{submitMessage}</p>
                 </div>
-            </section>
-
-            <section className="wow animate__fadeIn py-5" id="section-down">
-                <div className="container">
-                    <div className="row row-cols-1 row-cols-lg-2">
-                        <div className="col sm-margin-30px-bottom wow animate__fadeInLeft">
-                            <div className="reach-usForm padding-ten-all bg-light-gray border-radius-6 lg-padding-seven-all md-padding-eight-all sm-padding-30px-all h-100">
-                                <span className="text-extra-dark-gray alt-font text-large font-weight-600 margin-25px-bottom d-block">Ready to get started?</span>
-                                <form onSubmit={handleSubmit} noValidate suppressHydrationWarning>
-                                    {submitMessage && (
-                                        <div className="alert alert-success">{submitMessage}</div>
-                                    )}
-
-                                    {submitError && (
-                                        <div className="alert alert-danger">{submitError}</div>
-                                    )}
-
-                                    <div className="field-box">
-                                        <input
-                                            type="text"
-                                            name="name"
-                                            placeholder="Name*"
-                                            value={formData.name}
-                                            onChange={handleInputChange}
-                                        />
-                                        {errors.name && <span className="text-danger">{errors.name}</span>}
-                                    </div>
-
-                                    <div className="field-box">
-                                        <input
-                                            type="email"
-                                            name="email"
-                                            placeholder="Email*"
-                                            value={formData.email}
-                                            onChange={handleInputChange}
-                                        />
-                                        {errors.email && <span className="text-danger">{errors.email}</span>}
-                                    </div>
-
-                                    <div className="field-box">
-                                        <input
-                                            type="tel"
-                                            name="mobile"
-                                            placeholder="Mobile*"
-                                            value={formData.mobile}
-                                            onChange={handleInputChange}
-                                        />
-                                        {errors.mobile && <span className="text-danger">{errors.mobile}</span>}
-                                    </div>
-
-                                    <div className="field-box">
-                                        <input
-                                            type="text"
-                                            name="subject"
-                                            placeholder="Subject*"
-                                            value={formData.subject}
-                                            onChange={handleInputChange}
-                                        />
-                                        {errors.subject && <span className="text-danger">{errors.subject}</span>}
-                                    </div>
-
-                                    <div className="field-box">
-                                        <textarea
-                                            name="message"
-                                            placeholder="Your Message*"
-                                            rows={5}
-                                            value={formData.message}
-                                            onChange={handleInputChange}
-                                        />
-                                        {errors.message && <span className="text-danger">{errors.message}</span>}
-                                    </div>                                     
-
-                                    <button type="submit" disabled={submitting} className="btn btn-dark-gray btn-small text-extra-small border-radius-4">
-                                        {submitting ? "Sending..." : "Send Message"}
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                        <div className="col last-paragraph-no-margin wow animate__fadeInRight">
-                            <div className="padding-ten-all bg-light-gray border-radius-6 lg-padding-seven-all md-padding-eight-all sm-padding-30px-all h-100 text-center text-md-start">
-                                {/* <Image src="/images/contact.jpg" alt="Contact" className="border-radius-6 margin-35px-bottom sm-margin-30px-bottom" width={960} height={640} /> */}
-                                <img src={cmsData?.image} alt={cmsData?.title} className="border-radius-6 margin-35px-bottom sm-margin-30px-bottom" />
-
-                                <span className="text-large font-weight-600 alt-font text-extra-dark-gray margin-5px-bottom d-block">{cmsData?.title}</span>
-                                <p>{cmsData?.description}</p>
-                                <Link href={cmsData?.link || "#"} className="btn btn-dark-gray btn-small text-extra-small border-radius-4 margin-25px-top">{cmsData?.button_title}</Link>
-                            </div>
-                        </div>
-                    </div>
+              ) : null}
+              {submitError ? (
+                <div className="status" role="alert" id="reach-form-error">
+                  <p className="status__text">{submitError}</p>
                 </div>
-            </section>
-            <section className="pt-0 wow animate__fadeIn">
-                <div className="container-fluid p-0">
-                    <div className="row row-cols-1 row-cols-lg-4 justify-content-center g-0">
+              ) : null}
 
+              <div className="field">
+                <label htmlFor="reach-name">Name</label>
+                <input id="reach-name" name="name" autoComplete="name" value={formData.name} onChange={handleInputChange} aria-invalid={invalid("name")} aria-describedby={describedBy("name")} />
+                {fieldError("name")}
+              </div>
+              <div className="field">
+                <label htmlFor="reach-email">Email</label>
+                <input id="reach-email" name="email" type="email" autoComplete="email" value={formData.email} onChange={handleInputChange} aria-invalid={invalid("email")} aria-describedby={describedBy("email")} />
+                {fieldError("email")}
+              </div>
+              <div className="field">
+                <label htmlFor="reach-mobile">Mobile</label>
+                <input id="reach-mobile" name="mobile" type="tel" inputMode="numeric" autoComplete="tel-national" value={formData.mobile} onChange={handleInputChange} aria-invalid={invalid("mobile")} aria-describedby={describedBy("mobile")} />
+                {fieldError("mobile")}
+              </div>
+              <div className="field">
+                <label htmlFor="reach-subject">Subject</label>
+                <input id="reach-subject" name="subject" value={formData.subject} onChange={handleInputChange} aria-invalid={invalid("subject")} aria-describedby={describedBy("subject")} />
+                {fieldError("subject")}
+              </div>
+              <div className="field">
+                <label htmlFor="reach-message">Message</label>
+                <textarea id="reach-message" name="message" rows={5} value={formData.message} onChange={handleInputChange} aria-invalid={invalid("message")} aria-describedby={describedBy("message")} />
+                {fieldError("message")}
+              </div>
 
+              <Magnetic>
+                <button type="submit" className="btn btn--signal" disabled={submitting} aria-busy={submitting}>
+                  {submitting ? "Sending..." : "Send message"} <Icon name="arrow" className="btn__arrow" />
+                </button>
+              </Magnetic>
+            </form>
+          </div>
+        </div>
+      </section>
 
-                        {
-                            siteData?.addresses?.map((item: any) => (
-                                <div className="col image-hover-style-3 last-paragraph-no-margin bg-light-gray" key={item?._id}>
-                                    <div className="feature-box-wrap">
+      {otpOpen ? (
+        <div className="dialog-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) cancelOtp(); }}>
+          <div ref={otpDialog} role="dialog" aria-modal="true" aria-labelledby="otp-title" aria-describedby="otp-notice" className="dialog">
+            <p className="eyebrow" style={{ margin: 0 }}>
+              <span className="eyebrow__index">03</span>
+              Verify email
+            </p>
+            <h2 id="otp-title" className="h3">Enter your code</h2>
+            <p id="otp-notice" className="muted">{otpNotice}</p>
 
-                                        <div className="w-100 small-screen lg-h-350px sm-h-300px d-table arrow-top">
-                                            <div className="d-table-cell align-middle padding-eighteen-lr lg-padding-twelve-lr text-center md-padding-ten-lr sm-padding-seven-all">
-                                                <i className="icon-map text-deep-pink icon-medium margin-25px-bottom" />
-                                                <div className="text-extra-dark-gray text-uppercase alt-font font-weight-600 margin-5px-bottom">Contact Address {item?.city}</div>
-
-                                                <p className="w-55 mx-auto text-medium xl-w-75 lg-w-100">{item?.locality}, {item?.city}, {item?.state} {item?.country} </p>
-                                                {/* <p className="mx-auto text-medium mb-0">Phone: +1 (973) 919-1048</p> */}
-                                                <p className="mx-auto text-medium mb-0">Email: {item?.email}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
-                        }
-                    </div>
-                </div>
-            </section>
-
-            {otpOpen && (
-                <div
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label="Verify your email"
-                    onClick={cancelOtp}
-                    style={{
-                        position: "fixed",
-                        inset: 0,
-                        zIndex: 1080,
-                        background: "rgba(15, 23, 42, 0.55)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: "16px",
-                    }}
-                >
-                    <div
-                        className="bg-white border-radius-6"
-                        onClick={(e) => e.stopPropagation()}
-                        style={{ width: "100%", maxWidth: "400px", padding: "28px" }}
-                    >
-                        <h5 className="alt-font text-extra-dark-gray font-weight-600 margin-10px-bottom">
-                            Verify your email
-                        </h5>
-                        <p className="text-medium margin-15px-bottom" style={{ color: "#64748b", wordBreak: "break-word" }}>
-                            {otpNotice || `Sending a code to ${normalizedEmail()}…`}
-                        </p>
-
-                        <div className="field-box">
-                            <input
-                                type="text"
-                                inputMode="numeric"
-                                autoComplete="one-time-code"
-                                placeholder="Enter code"
-                                value={otpValue}
-                                disabled={otpBusy}
-                                maxLength={8}
-                                onChange={(e) => {
-                                    setOtpValue(e.target.value.replace(/\D/g, "").slice(0, 8));
-                                    setOtpError("");
-                                }}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                        e.preventDefault();
-                                        handleVerifyOtp();
-                                    }
-                                }}
-                            />
-                            {otpError && <span className="text-danger">{otpError}</span>}
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={handleVerifyOtp}
-                            disabled={otpBusy || !otpValue}
-                            className="btn btn-dark-gray btn-small text-extra-small border-radius-4"
-                        >
-                            {otpBusy ? "Verifying..." : "Verify & Send"}
-                        </button>
-
-                        <div className="d-flex justify-content-between align-items-center margin-15px-top">
-                            <button
-                                type="button"
-                                onClick={cancelOtp}
-                                disabled={otpBusy}
-                                className="btn btn-link btn-sm text-decoration-none p-0"
-                                style={{ fontSize: "0.8rem", color: "#64748b" }}
-                            >
-                                Edit details
-                            </button>
-                            <button
-                                type="button"
-                                onClick={handleResendOtp}
-                                disabled={otpBusy || resendIn > 0}
-                                className="btn btn-link btn-sm text-decoration-none p-0"
-                                style={{ fontSize: "0.8rem", color: resendIn > 0 ? "#94a3b8" : "#2563EB" }}
-                            >
-                                {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-        </>
-    )
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleVerifyOtp();
+              }}
+              noValidate
+            >
+              <div className="field">
+                <label htmlFor="otp-code">Verification code</label>
+                <input
+                  ref={otpInput}
+                  id="otp-code"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  value={otpValue}
+                  onChange={(e) => setOtpValue(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                  aria-invalid={otpError ? true : undefined}
+                  aria-describedby={otpError ? "otp-error" : undefined}
+                />
+                {otpError ? <span id="otp-error" className="field__error" role="alert">{otpError}</span> : null}
+              </div>
+              <div className="dialog__actions">
+                <button type="submit" className="btn btn--signal" disabled={otpBusy} aria-busy={otpBusy}>
+                  {otpBusy ? "Verifying..." : "Verify and send"}
+                </button>
+                <button type="button" className="text-link" onClick={handleResendOtp} disabled={otpBusy || resendIn > 0}>
+                  {resendIn > 0 ? `Resend in ${resendIn}s` : "Resend code"}
+                </button>
+                <button type="button" className="text-link" onClick={cancelOtp} disabled={otpBusy}>
+                  Edit details
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+    </>
+  );
 }

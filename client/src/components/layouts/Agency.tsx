@@ -1,79 +1,82 @@
-'use client';
+"use client";
+
+import Link from "next/link";
+import FrameImage from "@/components/ui/FrameImage";
+import ScrubStatement from "@/components/ui/ScrubStatement";
+import Icon from "@/components/ui/Icon";
+import SplitHeading from "@/components/ui/SplitHeading";
+import RevealGroup from "@/components/ui/RevealGroup";
+import { hrefFor, externalProps } from "@/utils/href";
+
+interface AgencyHighlight {
+  _id?: string;
+  image?: string;
+  title?: string;
+  description?: string;
+  link?: string;
+  button_title?: string;
+}
 
 interface AgencyProps {
-    about: any;
+  about?: {
+    title?: string;
+    description?: string;
+    highlights?: AgencyHighlight[];
+  } | null;
 }
+
+/** Scene 01: a single statement that the reader lights up as they scroll, then three proof cards. */
 export default function Agency({ about }: AgencyProps) {
-    return (
-        <>
-            <section className="wow animate__fadeIn bg-light-gray">
-                <div className="container">
-                    <div className="row justify-content-center">
-                        <div className="col-12 col-xl-10 col-lg-10 col-md-11 text-center wow animate__fadeInUp margin-eight-bottom">
-                            <div className="alt-font text-extra-medium-gray text-small-14 margin-5px-bottom text-uppercase">{about?.title}</div>
-                            <h6 className="font-weight-300 text-extra-dark-gray mb-0">{about?.description}</h6>
-                            {/* <h6 className="font-weight-300 text-extra-dark-gray mb-0">We house a team of experts <strong className="font-weight-400">(proficient in custom Web Application Development, Mobile Apps Development, AI Development, Software Development, and Ecommerce Development, IoT and Data Science).</strong> we have two decades of <strong className="font-weight-400"> digital solutions experiences </strong> for companies from all over the world.</h6> */}
-                        </div>
-                    </div>
-                    <div className="row justify-content-center align-items-center">
-                        {/* {
-                            about?.highlights?.map((item: any) => (
-                                <div className="col-12 col-lg-4 col-md-6 col-sm-8 md-margin-30px-bottom wow animate__fadeInUp" key={item._id}>
-                                    <div className="bg-white text-center">
-                                        <a href="services-simple.html"><img src={item?.image} alt={item?.title} /></a>
-                                        <div className="padding-40px-all md-padding-20px-all">
-                                            <span className="text-extra-dark-gray text-large font-weight-500 d-block alt-font margin-10px-bottom">{item?.title}</span>
-                                            <p>{item?.description}</p>
-                                            <a href={`/${item.link}`} className="btn btn-small btn-rounded btn-transparent-dark-gray">{item?.button_title} <i className="ti-arrow-right"></i></a>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))
-                        } */}
-                        {
-                            about?.highlights?.map((item: any) => {
-                                const isExternal = item?.link?.startsWith("http");
+  if (!about) return null;
+  const highlights = about.highlights ?? [];
 
-                                return (
-                                    <div
-                                        className="col-12 col-lg-4 col-md-6 col-sm-8 md-margin-30px-bottom wow animate__fadeInUp"
-                                        key={item._id}
-                                    >
-                                        <div className="bg-white text-center">
-                                            <a
-                                                href={isExternal ? item.link : `/${item.link}`}
-                                                target={isExternal ? "_blank" : "_self"}
-                                                rel={isExternal ? "noopener noreferrer" : undefined}
-                                            >
-                                                <img src={item?.image} alt={item?.title} />
-                                            </a>
+  return (
+    <section className="section section--ink" aria-labelledby="about-title">
+      <div className="wrap">
+        <div className="intro-head intro-head--row">
+          <div>
+            <p className="eyebrow">
+              <span className="eyebrow__index">01</span>
+              {about.title || "About"}
+            </p>
+            <SplitHeading as="h2" className="h2" options={{ type: "lines", when: "scroll" }}>
+              <span id="about-title" style={{ display: "inline" }}>
+                Who we are
+              </span>
+            </SplitHeading>
+          </div>
+        </div>
 
-                                            <div className="padding-45px-all md-padding-30px-all">
-                                                <span className="text-extra-dark-gray font-weight-600 d-block alt-font margin-10px-bottom">
-                                                    {item?.title}
-                                                </span>
+        {about.description ? <ScrubStatement text={about.description} /> : null}
 
-                                                <p>{item?.description}</p>
-
-                                                <a
-                                                    href={isExternal ? item.link : `/${item.link}`}
-                                                    target={isExternal ? "_blank" : "_self"}
-                                                    rel={isExternal ? "noopener noreferrer" : undefined}
-                                                    className="btn btn-small btn-rounded btn-transparent-dark-gray"
-                                                >
-                                                    {item?.button_title} <i className="ti-arrow-right"></i>
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        }
-                    </div>
-                </div>
-            </section>
-
-
-        </>
-    )
+        {highlights.length ? (
+          <RevealGroup className="grid grid--3 mt-m">
+            {highlights.map((item, i) => {
+              const href = hrefFor(item.link);
+              return (
+                <article key={item._id || i} className="card" data-reveal-item>
+                  <Link href={href} tabIndex={-1} aria-hidden="true" {...externalProps(href)} style={{ display: "block" }}>
+                    <FrameImage src={item.image} alt={item.title || ""} aspect="wide" tilt cursor="explore" />
+                  </Link>
+                  <div>
+                    <h3 className="h3" style={{ fontSize: "clamp(1.4rem, 2vw, 1.9rem)" }}>
+                      {item.title}
+                    </h3>
+                    <p className="muted" style={{ margin: "0.75rem 0 0" }}>
+                      {item.description}
+                    </p>
+                  </div>
+                  {item.button_title ? (
+                    <Link href={href} className="text-link" style={{ marginTop: "auto" }} {...externalProps(href)}>
+                      {item.button_title} <Icon name="arrow" />
+                    </Link>
+                  ) : null}
+                </article>
+              );
+            })}
+          </RevealGroup>
+        ) : null}
+      </div>
+    </section>
+  );
 }

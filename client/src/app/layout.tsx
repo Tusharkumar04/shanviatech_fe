@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import "@fontsource-variable/fraunces";
+import "@fontsource-variable/inter-tight";
+import "@fontsource-variable/jetbrains-mono";
 import "@/app/globals.css";
 
 import Header from "@/components/layouts/Header";
@@ -6,9 +9,12 @@ import Footer from "@/components/layouts/Footer";
 import Script from "next/script";
 import { SiteSettingsProvider } from "@/context/SiteSettingsContext";
 import { ServiceProvider } from "@/context/ServiceContext";
-import Certificate from "@/components/layouts/Certificate";
 import SurveyPopup from "@/components/layouts/SurveyPopup";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
+import MotionProvider from "@/components/motion/MotionProvider";
+import IntroLoader from "@/components/motion/IntroLoader";
+import CustomCursor from "@/components/motion/CustomCursor";
+import RouteTransition from "@/components/motion/RouteTransition";
 
 
 export const revalidate = 60;
@@ -115,33 +121,11 @@ export default function RootLayout({
           name="google-site-verification"
           content="aFkLJ7pA9pwiu-bbg34iE71g6Bg8i7LQSOz4P9HUK5Y"
         />
-        {/* <Script
-          id="facebook-pixel"
-          strategy="afterInteractive"
-        >
-          {`
-            !function(f,b,e,v,n,t,s)
-            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-            n.queue=[];t=b.createElement(e);t.async=!0;
-            t.src=v;s=b.getElementsByTagName(e)[0];
-            s.parentNode.insertBefore(t,s)}
-            (window, document,'script',
-            'https://connect.facebook.net/en_US/fbevents.js');
-
-            fbq('init', '3569115919913260');
-            fbq('track', 'PageView');
-          `}
-        </Script> */}
+        <meta name="theme-color" content="#0a0b0d" />
       </head>
       <body suppressHydrationWarning>
-        {/* Google Analytics */}
         <GoogleAnalytics />
-        <Script
-          id="facebook-pixel"
-          strategy="afterInteractive"
-        >
+        <Script id="facebook-pixel" strategy="afterInteractive">
           {`
             !function(f,b,e,v,n,t,s)
             {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -167,48 +151,22 @@ export default function RootLayout({
             alt=""
           />
         </noscript>
-        <Script
-          id="system-theme"
-          strategy="beforeInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `
-              (function () {
-                var root = document.documentElement;
-                var media = window.matchMedia('(prefers-color-scheme: dark)');
-                var applyTheme = function (isDark) {
-                  root.classList.remove('theme-light', 'theme-dark');
-                  root.classList.add(isDark ? 'theme-dark' : 'theme-light');
-                };
-                applyTheme(media.matches);
-                if (typeof media.addEventListener === 'function') {
-                  media.addEventListener('change', function (event) {
-                    applyTheme(event.matches);
-                  });
-                } else if (typeof media.addListener === 'function') {
-                  media.addListener(function (event) {
-                    applyTheme(event.matches);
-                  });
-                }
-              })();
-            `,
-          }}
-        />
+
         <SiteSettingsProvider>
           <ServiceProvider>
-            <Header />
-            {children}
-
-            <Certificate />
-            <Footer />
-            <SurveyPopup />
+            <MotionProvider>
+              <IntroLoader />
+              <CustomCursor />
+              <Header />
+              <RouteTransition />
+              <main id="main" tabIndex={-1} style={{ outline: "none" }}>
+                {children}
+              </main>
+              <Footer />
+              <SurveyPopup />
+            </MotionProvider>
           </ServiceProvider>
         </SiteSettingsProvider>
-        <Script type="text/javascript" src="/js/jquery.min.js" />
-        <Script type="text/javascript" src="/js/bootsnav.js" />
-        <Script type="text/javascript" src="/js/jquery.nav.js" />
-        <Script type="text/javascript" src="/js/hamburger-menu.js" />
-        <Script type="text/javascript" src="/js/theme-vendors.min.js" />
-        <Script type="text/javascript" src="/js/main.js" />
       </body>
     </html>
   );

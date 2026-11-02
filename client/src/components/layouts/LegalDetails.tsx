@@ -1,76 +1,62 @@
-'use client';
+"use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { LegalItem, getLegalByTypeApiCall } from "@/services/api/LegalApi";
+import { getLegalByTypeApiCall, type LegalItem } from "@/services/api/LegalApi";
+import Opener from "@/components/ui/Opener";
+import { ErrorState, LoadingState, EmptyState } from "@/components/ui/StatePanels";
 
 interface LegalDetailsProps {
   type: string;
 }
 
+/**
+ * Legal document reader: a calm, single-column page with generous measure.
+ * The document body is CMS HTML, as it was before.
+ */
 export default function LegalDetails({ type }: LegalDetailsProps) {
   const [legal, setLegal] = useState<LegalItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    const fetchLegal = async () => {
+    let cancelled = false;
+    const run = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const response = await getLegalByTypeApiCall(type);
-        setLegal(response);
+        if (!cancelled) setLegal(response);
       } catch (err) {
-        const message =
-          err instanceof Error ? err.message : "Unable to load legal details";
-        setError(message);
+        if (!cancelled) setError(err instanceof Error ? err.message : "Unable to load this document.");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
+    run();
+    return () => {
+      cancelled = true;
+    };
+  }, [type, attempt]);
 
-    fetchLegal();
-  }, [type]);
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>{error}</div>;
-  if (!legal) return <div>Legal content not found.</div>;
-
-  const description = (legal?.description || legal?.content || "") as string;
+  if (loading) return <div className="wrap section"><LoadingState label="Loading document" /></div>;
+  if (error) return <div className="wrap section"><ErrorState message={error} onRetry={() => setAttempt((n) => n + 1)} /></div>;
+  if (!legal) {
+    return (
+      <div className="wrap section">
+        <EmptyState title="Document not found." action={{ href: "/", label: "Back to home" }} />
+      </div>
+    );
+  }
 
   return (
     <>
-      <section className="wow animate__fadeIn bg-light-gray padding-35px-tb page-title-small top-space">
-        <div className="container">
-          <div className="row align-items-center">
-            <div className="col-xl-8 col-md-6 text-center text-md-start">
-              <h1 className="alt-font text-extra-dark-gray font-weight-600 mb-0 text-uppercase">
-                {legal?.title || "Legal"}
-              </h1>
-            </div>
-            <div className="col-xl-4 col-md-6 breadcrumb justify-content-center justify-content-md-end text-small alt-font sm-margin-10px-top">
-              <ul>
-                <li>
-                  <Link href="/" className="text-dark-gray">
-                    Home
-                  </Link>
-                </li>
-                <li>
-                  <span className="text-dark-gray">Legal</span>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="wow animate__fadeIn">
-        <div className="container">
-          <div className="row justify-content-center">
-            <div className="col-12 col-lg-10">
-              <h5 className="alt-font text-black font-weight-600 mb-4">{legal?.title}</h5>
-              <div className="detailsBlg" dangerouslySetInnerHTML={{ __html: description }} />
-            </div>
-          </div>
-        </div>
+      <Opener crumbs={[{ label: legal.title || "Legal" }]} title={legal.title || "Legal"} />
+      <section className="section section--bone" aria-label="Document">
+        <article className="prose wrap">
+          {legal.description ? <p className="lede">{legal.description}</p> : null}
+          {legal.content ? <div dangerouslySetInnerHTML={{ __html: legal.content }} /> : null}
+        </article>
       </section>
     </>
   );

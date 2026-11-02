@@ -1,389 +1,121 @@
-
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
-import Loader from "@/components/layouts/Loader";
+import { useMemo, useState } from "react";
 import { getProductsApiCall } from "@/services/api/productsApi";
+import { useApi } from "@/hooks/useApi";
+import Opener from "@/components/ui/Opener";
+import FrameImage from "@/components/ui/FrameImage";
+import Icon from "@/components/ui/Icon";
+import RevealGroup from "@/components/ui/RevealGroup";
+import { EmptyState, ErrorState, LoadingState, SkeletonGrid } from "@/components/ui/StatePanels";
 
 const PRODUCTS_PAGE_SIZE = 4;
 
-interface Product {
-    _id: string;
-    title: string;
-    subtitle?: string;
-    description?: string;
-    key_features?: string[];
-    images?: string[];
-    order?: number;
-    image?: string;
-    imageUrl?: string;
-    livePreviewUrl?: string;
-    supportTitle?: string;
-    supportSub?: string;
+export interface Product {
+  _id: string;
+  title: string;
+  subtitle?: string;
+  description?: string;
+  key_features?: string[];
+  images?: string[];
+  order?: number;
+  image?: string;
+  imageUrl?: string;
+  livePreviewUrl?: string;
+  supportTitle?: string;
+  supportSub?: string;
 }
+
 interface ProductsResponse {
-    code: number;
-    message: string;
-    data: {
-        items: Product[];
-        meta: {
-            total: number;
-            page: number;
-            limit: number;
-            totalPages: number;
-        };
-    };
+  data?: { items?: Product[] };
 }
 
+/** Product image, using the first gallery image, then the single image fields. */
+export const productImageOf = (item: Product): string | undefined => item.images?.[0] || item.image || item.imageUrl || undefined;
+
+/**
+ * Product catalogue. Products are sorted by `order`, shown four at a time,
+ * and each one links to its detail page by _id.
+ */
 export default function Products() {
-    const [products, setProducts] = useState<Product[]>([]);
-    const [page, setPage] = useState(1);
+  const { data, loading, error, reload } = useApi<ProductsResponse>(
+    () => getProductsApiCall() as Promise<ProductsResponse>,
+    [],
+    "Failed to load products. Please try again.",
+  );
+  const [page, setPage] = useState(1);
 
-    const [loading, setLoading] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
-    const [error, setError] = useState("");
+  const products = useMemo(
+    () => [...(data?.data?.items ?? [])].filter(Boolean).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+    [data],
+  );
+  const visible = products.slice(0, page * PRODUCTS_PAGE_SIZE);
+  const hasMore = visible.length < products.length;
 
-    /*
-     * Fetch products
-     */
-    const fetchProducts = useCallback(async () => {
-        try {
-            setLoading(true);
-            setError("");
+  return (
+    <>
+      <Opener crumbs={[{ label: "Products" }]} title="Products" lede="Ready-to-run software, built and maintained by our team." />
 
-            const response =
-                (await getProductsApiCall()) as ProductsResponse;
+      <section className="section section--bone" aria-label="Product list">
+        <div className="wrap">
+          {loading ? (
+            <div aria-busy="true">
+              <LoadingState label="Loading products" />
+              <SkeletonGrid count={4} />
+            </div>
+          ) : null}
+          {!loading && error ? <ErrorState message={error} onRetry={reload} /> : null}
+          {!loading && !error && products.length === 0 ? (
+            <EmptyState title="No products published yet." text="Please check back soon." />
+          ) : null}
 
-            console.log("products:", response);
-            console.log("items:", response?.data?.items);
+          {!loading && !error && visible.length > 0 ? (
+            <>
+              <RevealGroup as="ul" className="product-list">
+                {visible.map((item, index) => {
+                  const href = `/products/${item._id}`;
+                  const image = productImageOf(item);
+                  return (
+                    <li key={item._id || index} className={`product ${index % 2 ? "product--flip" : ""}`} data-reveal-item style={{ listStyle: "none" }}>
+                      <div>
+                        <Link href={href} className="product__media" data-cursor="view" data-cursor-label="Open" tabIndex={-1} aria-hidden="true">
+                          <FrameImage src={image} alt="" aspect="wide" tilt />
+                        </Link>
+                      </div>
+                      <div className="product__copy">
+                        {item.subtitle ? <span className="note">{item.subtitle}</span> : null}
+                        <h2 className="h2" style={{ fontSize: "clamp(2rem, 4vw, 3.4rem)" }}>
+                          <Link href={href} className="link-plain">{item.title}</Link>
+                        </h2>
+                        {item.description ? <p className="lede">{item.description}</p> : null}
+                        {item.key_features?.length ? (
+                          <ul className="ticks">
+                            {item.key_features.map((feature, i) => (
+                              <li key={`${feature}-${i}`}>{feature}</li>
+                            ))}
+                          </ul>
+                        ) : null}
+                        <Link href={href} className="btn">
+                          View product <Icon name="arrow" className="btn__arrow" />
+                        </Link>
+                      </div>
+                    </li>
+                  );
+                })}
+              </RevealGroup>
 
-            // Your API response:
-            // response.data.items
-            const items = response?.data?.items || [];
-
-            // Sort by order
-            const sortedProducts = [...items].sort(
-                (a, b) => (a.order ?? 0) - (b.order ?? 0)
-            );
-
-            setProducts(sortedProducts);
-        } catch (err) {
-            console.error("Failed to fetch products:", err);
-            setError("Failed to load products. Please try again.");
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchProducts();
-    }, [fetchProducts]);
-
-    /*
-     * Products currently visible
-     */
-    const displayedProducts = products.slice(
-        0,
-        page * PRODUCTS_PAGE_SIZE
-    );
-
-    const hasMoreItems =
-        displayedProducts.length < products.length;
-
-    /*
-     * Load more
-     */
-    const loadMoreProducts = useCallback(() => {
-        if (loadingMore || !hasMoreItems) return;
-
-        setLoadingMore(true);
-
-        setTimeout(() => {
-            setPage((prevPage) => prevPage + 1);
-            setLoadingMore(false);
-        }, 500);
-    }, [hasMoreItems, loadingMore]);
-
-    /*
-     * Loading state
-     */
-    if (loading) {
-        return (
-            <section className="padding-100px-tb">
-                <div className="container text-center">
-                    <Loader size={30} inline />
+              {hasMore ? (
+                <div className="center mt-l">
+                  <button type="button" className="btn" onClick={() => setPage((p) => p + 1)}>
+                    Load more <Icon name="arrow" className="btn__arrow" />
+                  </button>
                 </div>
-            </section>
-        );
-    }
-
-    /*
-     * Error state
-     */
-    if (error) {
-        return (
-            <section className="padding-100px-tb">
-                <div className="container text-center">
-                    <p className="text-red mb-4">
-                        {error}
-                    </p>
-
-                    <button
-                        type="button"
-                        onClick={fetchProducts}
-                        className="btn btn-medium btn-dark-gray btn-rounded"
-                    >
-                        Try Again
-                    </button>
-                </div>
-            </section>
-        );
-    }
-
-    return (
-        <>
-            {/* Page Title */}
-            <section className="wow animate__fadeIn bg-light-gray padding-35px-tb page-title-small top-space">
-                <div className="container">
-                    <div className="row align-items-center">
-                        <div className="col-xl-8 col-md-6 text-center text-md-start">
-                            <h1 className="alt-font text-extra-dark-gray font-weight-600 mb-0 text-uppercase">
-                                Products
-                            </h1>
-                        </div>
-
-                        <div className="col-xl-4 col-md-6 breadcrumb justify-content-center justify-content-md-end text-small alt-font sm-margin-10px-top">
-                            <ul>
-                                <li>
-                                    <Link
-                                        href="/"
-                                        className="text-dark-gray"
-                                    >
-                                        Home
-                                    </Link>
-                                </li>
-
-                                <li>
-                                    <span className="text-dark-gray">
-                                        Products
-                                    </span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Products */}
-            <section className="wow animate__fadeIn pt-5 pb-5">
-                <div className="container">
-
-                    {/* Heading */}
-                    <div className="row justify-content-center">
-                        <div className="col-12 col-xl-5 col-lg-6 col-md-7 col-sm-8 margin-eight-bottom md-margin-40px-bottom sm-margin-30px-bottom text-center">
-                            <div className="alt-font text-dark-gray text-small-14 margin-5px-bottom text-uppercase">
-                                Products
-                            </div>
-
-                            <h5 className="alt-font text-black font-weight-600 mb-0">
-                                Discover our innovative solutions designed for you
-                            </h5>
-                        </div>
-                    </div>
-
-                    <div className="row">
-                        <div className="col-12 blog-content">
-
-                            {/* No Products */}
-                            {products.length === 0 ? (
-                                <div className="text-center padding-50px-tb">
-                                    <p className="text-medium-gray mb-0">
-                                        No products available.
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="product-list-wrapper">
-
-                                    {displayedProducts.map(
-                                        (item, index) => {
-                                            const productHref =
-                                                `/products/${item._id}`;
-
-                                            const isEven =
-                                                index % 2 === 0;
-
-                                            /*
-                                             * Currently your MongoDB product
-                                             * does not contain an image.
-                                             *
-                                             * If image/imageUrl exists,
-                                             * it will use that.
-                                             */
-                                            const productImage =
-                                                item.images?.[0] ||
-                                                item.image ||
-                                                item.imageUrl ||
-                                                `https://picsum.photos/seed/product-${item._id}/800/520`;
-
-                                            return (
-                                                <div
-                                                    className="row align-items-center mb-5 pb-5 border-bottom product-border-light wow animate__fadeInUp"
-                                                    key={item._id}
-                                                >
-
-                                                    {/* Image */}
-                                                    <div
-                                                        className={`col-lg-6 ${isEven
-                                                            ? "order-1 order-lg-1"
-                                                            : "order-1 order-lg-2"
-                                                            }`}
-                                                    >
-                                                        <Link
-                                                            href={productHref}
-                                                            className="d-block overflow-hidden shadow-lg product-image-rounded position-relative"
-                                                        >
-                                                            <div className="blurBg" style={{ backgroundImage: `url(${productImage})` }}></div>
-                                                            <Image
-                                                                loader={({
-                                                                    src,
-                                                                }) => src}
-                                                                unoptimized
-                                                                src={
-                                                                    productImage
-                                                                }
-                                                                alt={
-                                                                    item.title
-                                                                }
-                                                                width={800}
-                                                                height={520}
-                                                                className="product-image-cover mx-auto"
-                                                            />
-                                                        </Link>
-                                                    </div>
-
-                                                    {/* Content */}
-                                                    <div
-                                                        className={`col-lg-6 ${isEven
-                                                            ? "order-2 order-lg-2 ps-lg-5"
-                                                            : "order-2 order-lg-1 pe-lg-5"
-                                                            } mt-4 mt-lg-0`}
-                                                    >
-
-                                                        {/* Subtitle */}
-                                                        {item.subtitle && (
-                                                            <span className="text-medium-gray text-extra-medium text-uppercase d-block margin-15px-bottom font-weight-500 product-subtitle">
-                                                                {
-                                                                    item.subtitle
-                                                                }
-                                                            </span>
-                                                        )}
-
-                                                        {/* Title */}
-                                                        <h3 className="alt-font text-extra-dark-gray font-weight-600 mb-3 product-title-heading">
-                                                            <Link
-                                                                href={
-                                                                    productHref
-                                                                }
-                                                                className="text-extra-dark-gray"
-                                                            >
-                                                                {
-                                                                    item.title
-                                                                }
-                                                            </Link>
-                                                        </h3>
-
-                                                        {/* Description */}
-                                                        {item.description && (
-                                                            <p className="mb-4 text-medium product-desc">
-                                                                {
-                                                                    item.description
-                                                                }
-                                                            </p>
-                                                        )}
-
-                                                        {/* Key Features */}
-                                                        {item.key_features &&
-                                                            item.key_features
-                                                                .length >
-                                                            0 && (
-                                                                <ul className="mb-4 list-unstyled">
-                                                                    {item.key_features.map(
-                                                                        (
-                                                                            feature,
-                                                                            featureIndex
-                                                                        ) => (
-                                                                            <li
-                                                                                key={featureIndex}
-                                                                                className="mb-3 d-flex align-items-start text-medium"
-                                                                            >
-                                                                                <i
-                                                                                    className="fas fa-check-circle mt-1 me-3 fs-5"
-                                                                                    style={{
-                                                                                        color: "#169d65",
-                                                                                    }}
-                                                                                ></i>
-                                                                                {feature}
-                                                                            </li>
-                                                                        )
-                                                                    )}
-                                                                </ul>
-                                                            )}
-
-                                                        {/* View Details */}
-                                                        <Link
-                                                            href={productHref}
-                                                            className="btn btn-medium btn-dark-gray btn-rounded d-inline-flex align-items-center product-btn"
-                                                        >
-                                                            View Details
-
-                                                            <i className="fas fa-arrow-right ms-2"></i>
-                                                        </Link>
-                                                    </div>
-                                                </div>
-                                            );
-                                        }
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Load More */}
-                            {hasMoreItems && (
-                                <div className="row">
-                                    <div className="col-12 text-center margin-40px-top sm-margin-30px-top">
-                                        <button
-                                            type="button"
-                                            onClick={
-                                                loadMoreProducts
-                                            }
-                                            disabled={
-                                                loadingMore
-                                            }
-                                            className="btn btn-medium btn-dark-gray btn-rounded d-inline-flex align-items-center justify-content-center"
-                                            style={{
-                                                gap: 10,
-                                            }}
-                                        >
-                                            {loadingMore ? (
-                                                <>
-                                                    <Loader
-                                                        size={18}
-                                                        inline
-                                                    />
-                                                    Loading...
-                                                </>
-                                            ) : (
-                                                "Load More"
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </>
-    );
+              ) : null}
+            </>
+          ) : null}
+        </div>
+      </section>
+    </>
+  );
 }

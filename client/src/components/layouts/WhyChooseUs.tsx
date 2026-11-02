@@ -1,27 +1,43 @@
-'use client';
+"use client";
 
-interface WhyWeChooseProps {
-    whyChoose: any;
+import FrameImage from "@/components/ui/FrameImage";
+import SplitHeading from "@/components/ui/SplitHeading";
+
+interface WhyChooseUsProps {
+  whyChoose?: {
+    title?: string;
+    subtitle?: string;
+    description?: string;
+    image?: string;
+  } | null;
 }
-export default function WhyChooseUs({ whyChoose }: WhyWeChooseProps) {
-    return (
-        <>
-            <section className="wow animate__fadeIn pb-5">
-                <div className="container">
-                    <div className="row justify-content-center">
-                        <div className="col-12 col-xl-9 col-md-6 margin-five-bottom md-margin-40px-bottom sm-margin-30px-bottom text-center">
-                            <div className="alt-font text-dark-gray text-small-14 margin-5px-bottom text-uppercase">{whyChoose?.title}</div>
-                            <h5 className="alt-font text-dark font-weight-600">{whyChoose?.subtitle}</h5>
-                            <p className="mb-0">{whyChoose?.description}</p>
-                        </div>
-                    </div>
-                </div>
-                <div className="container">
-                    <div className="row justify-content-center">
-                        <div className="col-12 col-md-8 col-lg-6 text-center"><img src={whyChoose?.image} alt="" /></div>
-                    </div>
-                </div>
-            </section>
-        </>
-    )
+
+/**
+ * Scene 05: a bone-coloured pause. Deliberately still: one large centred
+ * statement and a single wide picture that opens from the left.
+ */
+export default function WhyChooseUs({ whyChoose }: WhyChooseUsProps) {
+  if (!whyChoose) return null;
+
+  return (
+    <section className="section section--bone" aria-labelledby="why-title">
+      <div className="wrap">
+        <div className="intro-head" style={{ justifyItems: "center", textAlign: "center" }}>
+          <p className="eyebrow" style={{ justifyContent: "center" }}>
+            <span className="eyebrow__index">05</span>
+            {whyChoose.title || "Why choose us"}
+          </p>
+          <SplitHeading as="h2" className="h2" options={{ type: "lines", when: "scroll" }}>
+            <span id="why-title">{whyChoose.subtitle}</span>
+          </SplitHeading>
+          {whyChoose.description ? (
+            <p className="lede" style={{ maxWidth: "52ch", margin: "1rem auto 0", fontSize: "clamp(1.05rem, 1.5vw, 1.25rem)" }}>
+              {whyChoose.description}
+            </p>
+          ) : null}
+        </div>
+        <FrameImage src={whyChoose.image} alt={whyChoose.subtitle || whyChoose.title || "Why choose us"} aspect="cinema" direction="left" parallax={0.06} />
+      </div>
+    </section>
+  );
 }

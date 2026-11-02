@@ -1,94 +1,71 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from "react";
-import WhatPeopleSay from "./WhatPeopleSay";
 import Link from "next/link";
 import { getCmsApiCall } from "@/services/api/cmsApi";
+import { useApi } from "@/hooks/useApi";
+import Opener from "@/components/ui/Opener";
+import FrameImage from "@/components/ui/FrameImage";
+import Icon from "@/components/ui/Icon";
+import SplitHeading from "@/components/ui/SplitHeading";
+import { ErrorState, LoadingState, EmptyState } from "@/components/ui/StatePanels";
+import { hrefFor, externalProps } from "@/utils/href";
 
 interface ClientSectionData {
-    image?: string;
-    title?: string;
-    description?: string;
-    key_points?: string[];
-    link?: string;
-    button_title?: string;
+  image?: string;
+  title?: string;
+  description?: string;
+  key_points?: string[];
+  link?: string;
+  button_title?: string;
 }
 
-
+/** Client stories: a single feature with key points and a call to action. */
 export default function Clients() {
+  const { data, loading, error, reload } = useApi<{ client?: ClientSectionData }>(
+    () => getCmsApiCall() as Promise<{ client?: ClientSectionData }>,
+    [],
+    "Unable to load client stories.",
+  );
+  const section = data?.client ?? null;
 
-    const [cmdData, setCmsData] = useState<ClientSectionData | null>(null);
-    const [loading, setLoading] = useState(true);
+  if (loading) return <div className="wrap section"><LoadingState label="Loading" /></div>;
+  if (error) return <div className="wrap section"><ErrorState message={error} onRetry={reload} /></div>;
+  if (!section) return <div className="wrap section"><EmptyState title="No client stories published yet." /></div>;
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await getCmsApiCall();
-                setCmsData(response?.client as ClientSectionData);
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setLoading(false);
-            }
-        };
+  const href = hrefFor(section.link);
 
-        fetchData();
-    }, []);
-    return (
-        <>
-            <section className="wow animate__fadeIn bg-light-gray padding-35px-tb page-title-small top-space">
-                <div className="container">
-                    <div className="row align-items-center">
-                        <div className="col-xl-8 col-md-6 text-center text-md-start">
-                            <h1 className="alt-font text-extra-dark-gray font-weight-600 mb-0 text-uppercase">Clients</h1>
-                        </div>
-                        <div className="col-xl-4 col-md-6 breadcrumb justify-content-center justify-content-md-end text-small alt-font sm-margin-10px-top">
-                            <ul>
-                                <li><Link href="/" className="text-dark-gray">Home</Link></li>
-                                <li><span className="text-dark-gray">Our Clients</span></li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </section>
+  return (
+    <>
+      <Opener crumbs={[{ label: "Client stories" }]} title={section.title || "Client stories"} lede={section.description} />
 
-            <WhatPeopleSay />
-
-            <section className="bg-light-gray p-0 wow animate__fadeIn">
-                <div className="container-fluid">
-                    <div className="row">
-                        {loading ? (
-                            <div className="col-12 col-xl-5 col-lg-6 padding-eight-half-all xl-padding-seven-all">
-                                <p>Loading...</p>
-                            </div>
-                        ) : (
-                            <>
-                                <div className="col-12 col-xl-7 col-lg-6 cover-background md-h-500px sm-h-400px overflow-visible wow animate__fadeInLeft" style={{ backgroundImage: cmdData?.image ? `url(${cmdData.image})` : "none" }}>
-                                </div>
-                                <div className="col-12 col-xl-5 col-lg-6 padding-eight-half-all xl-padding-seven-all wow animate__fadeInRight">
-                                    <h4 className="alt-font text-black font-weight-600 margin-45px-bottom md-margin-25px-bottom sm-margin-20px-bottom">{cmdData?.title}</h4>
-                                    <p className="margin-35px-bottom w-95 md-margin-25px-bottom sm-w-100">{cmdData?.description}</p>
-                                    <ul className="list-style-12 margin-35px-top">
-                                        {(cmdData?.key_points ?? []).map((item: string, index: number) => (
-                                            <li key={index}>{item}</li>
-                                        ))}
-                                    </ul>
-                                    {cmdData?.link && (
-                                        <Link
-                                            href={cmdData.link}
-                                            className="btn btn-small btn-rounded btn-dark-gray margin-40px-top sm-margin-25px-top"
-                                        >
-                                            {cmdData?.button_title}
-                                        </Link>
-                                    )}
-                                </div>
-                            </>
-                        )}
-                    </div>
-                </div>
-            </section>
-
-        </>
-    )
+      <section className="section section--ink" aria-label="Highlights">
+        <div className="wrap split">
+          <FrameImage src={section.image} alt={section.title || ""} aspect="tall" direction="left" parallax={0.06} />
+          <div>
+            <p className="eyebrow">
+              <span className="eyebrow__index">01</span>
+              What we deliver
+            </p>
+            <SplitHeading as="h2" className="h2" options={{ type: "lines", when: "scroll" }}>
+              <span>{section.title}</span>
+            </SplitHeading>
+            {section.key_points?.length ? (
+              <ul className="ticks" style={{ marginTop: "2rem" }}>
+                {section.key_points.map((point, i) => (
+                  <li key={`${point}-${i}`}>{point}</li>
+                ))}
+              </ul>
+            ) : null}
+            {section.link && section.button_title ? (
+              <div style={{ marginTop: "2.5rem" }}>
+                <Link href={href} className="btn" {...externalProps(href)}>
+                  {section.button_title} <Icon name="arrow" className="btn__arrow" />
+                </Link>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </section>
+    </>
+  );
 }
-

@@ -1,123 +1,119 @@
-'use client';
+"use client";
 
-import { Swiper, SwiperSlide } from "swiper/react";
-import { Pagination, Autoplay, Keyboard } from "swiper/modules";
-import Image from "next/image";
+import { useRef, type PointerEvent as ReactPointerEvent } from "react";
+import { useApi } from "@/hooks/useApi";
+import { getTestimonialsApiCall, type TestimonialItem, type TestimonialsData } from "@/services/api/testimonialsApi";
+import SplitHeading from "@/components/ui/SplitHeading";
+import Icon from "@/components/ui/Icon";
+import { LoadingState, ErrorState } from "@/components/ui/StatePanels";
 
-import "swiper/css";
-import "swiper/css/pagination";
-import { useEffect, useState } from "react";
-import {
-    getTestimonialsApiCall,
-    TestimonialItem,
-    TestimonialsData,
-} from "@/services/api/testimonialsApi";
-
+/**
+ * Testimonials as a draggable rail. Mouse users drag (the cursor says so);
+ * touch uses native scroll-snap; keyboard users get real buttons.
+ */
 export default function WhatPeopleSay() {
-    const [testimonialsData, setTestimonialsData] = useState<TestimonialsData | null>(null);
-    const [loading, setLoading] = useState(true);
+  const { data, loading, error, reload } = useApi<TestimonialsData>(getTestimonialsApiCall, [], "Unable to load testimonials.");
+  const rail = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ x: number; left: number; id: number } | null>(null);
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const response = await getTestimonialsApiCall();
-                setTestimonialsData(response);
-            } catch (error) {
-                console.error(error);
-            } finally {
-                setLoading(false);
-            }
-        };
+  const items = (data?.items ?? []).filter(Boolean);
 
-        fetchData();
-    }, []);
+  const onDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (e.pointerType !== "mouse" || !rail.current) return;
+    drag.current = { x: e.clientX, left: rail.current.scrollLeft, id: e.pointerId };
+    rail.current.classList.add("is-dragging");
+  };
+  const onMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+    if (!drag.current || !rail.current) return;
+    rail.current.scrollLeft = drag.current.left - (e.clientX - drag.current.x);
+  };
+  const onUp = () => {
+    drag.current = null;
+    rail.current?.classList.remove("is-dragging");
+  };
 
-    if (loading) return <div>Loading...</div>;
-    if (!testimonialsData) return null;
-    return (
-        <>
-            <section className="wow animate__fadeIn pt-5">
-                <div className="container">
-                    <div className="row justify-content-center">
-                        <div className="col-12 col-xl-5 col-md-6 col-sm-8 margin-four-bottom md-margin-40px-bottom sm-margin-30px-bottom text-center">
-                            <div className="alt-font text-dark-gray text-small-14 margin-5px-bottom text-uppercase">
-                                What people say
-                            </div>
-                            <h5 className="alt-font text-black font-weight-600 mb-0">
-                                We have received tons of awesome testimonials
-                            </h5>
-                        </div>
-                    </div>
+  const step = (dir: 1 | -1) => {
+    const el = rail.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * Math.min(el.clientWidth * 0.8, 520), behavior: "smooth" });
+  };
 
-                    <div className="row position-relative justify-content-center">
-                        <div className="col-12 col-md-12 col-sm-9">
-                            <Swiper
-                                modules={[Pagination, Autoplay, Keyboard]}
-                                slidesPerView={1}
-                                spaceBetween={30}
-                                loop={false}
-                                allowTouchMove={true}
-                                autoplay={{
-                                    delay: 3000,
-                                    disableOnInteraction: false,
-                                }}
-                                keyboard={{
-                                    enabled: true,
-                                    onlyInViewport: true,
-                                }}
-                                breakpoints={{
-                                    768: {
-                                        slidesPerView: 2,
-                                    },
-                                    992: {
-                                        slidesPerView: 3,
-                                    },
-                                }}
-                                pagination={{
-                                    el: ".swiper-pagination",
-                                    clickable: true,
-                                }}
-                                className="swiper-container swiper-pagination-bottom black-move blog-slider"
-                            >
-                                {
-                                    (testimonialsData?.items ?? []).map((item: TestimonialItem, index: number) => (
-                                        <SwiperSlide className="swiper-slide" key={item?._id || `${item?.author_name || "testimonial"}-${index}`}>
-                                            <div className="margin-half-all bg-white box-shadow-light text-center padding-fourteen-all h-100 sm-padding-30px-all">
-                                                {item?.author_image ? (
-                                                    <Image
-                                                        loader={({ src }) => src}
-                                                        unoptimized
-                                                        src={item.author_image}
-                                                        className="rounded-circle w-100px h-100px margin-25px-bottom md-margin-15px-bottom"
-                                                        alt={item?.author_name || "Author"}
-                                                        width={100}
-                                                        height={100}
-                                                    />
-                                                ) : null}
-                                                <p className="md-margin-15px-bottom sm-margin-20px-bottom">
-                                                    {item?.description
-                                                        ? `${item.description.slice(0, 150)}...`
-                                                        : ""}
-                                                </p>
-                                                <span className="text-extra-dark-gray text-small text-uppercase d-block line-height-10 alt-font font-weight-600">
-                                                    {item?.author_name}
-                                                </span>
-                                                <span className="text-light-gray2 text-extra-small text-uppercase text-medium-gray">
-                                                    {item?.author_location}
-                                                </span>
-                                            </div>
-                                        </SwiperSlide>
-                                    ))
-                                }
+  return (
+    <section className="section section--ink" aria-labelledby="testimonials-title">
+      <div className="wrap">
+        <div className="intro-head intro-head--row" style={{ alignItems: "end" }}>
+          <div>
+            <p className="eyebrow">
+              <span className="eyebrow__index">06</span>
+              Testimonials
+            </p>
+            <SplitHeading as="h2" className="h2" options={{ type: "lines", when: "scroll" }}>
+              <span id="testimonials-title">What people say</span>
+            </SplitHeading>
+          </div>
+          {items.length > 1 ? (
+            <div className="hero__controls" role="group" aria-label="Testimonial controls" style={{ justifySelf: "end" }}>
+              <button type="button" className="hero__dot" aria-label="Previous testimonial" onClick={() => step(-1)}>
+                <Icon name="prev" />
+              </button>
+              <button type="button" className="hero__dot hero__dot--next" aria-label="Next testimonial" onClick={() => step(1)}>
+                <Icon name="prev" />
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </div>
 
+      {loading ? <LoadingState label="Loading testimonials" /> : null}
+      {error ? (
+        <div className="wrap">
+          <ErrorState message={error} onRetry={reload} />
+        </div>
+      ) : null}
 
-                                {/* Pagination */}
-                                <div className="swiper-pagination"></div>
-                            </Swiper>
-                        </div>
-                    </div>
-                </div>
-            </section>
-        </>
-    )
+      {!loading && !error && items.length ? (
+        <div
+          ref={rail}
+          className="quote-rail"
+          data-cursor="drag"
+          data-cursor-label="Drag"
+          tabIndex={0}
+          role="region"
+          aria-label="Testimonials, scroll horizontally"
+          onPointerDown={onDown}
+          onPointerMove={onMove}
+          onPointerUp={onUp}
+          onPointerLeave={onUp}
+          onPointerCancel={onUp}
+        >
+          {items.map((item, i) => (
+            <Quote key={item._id || `${item.author_name || "quote"}-${i}`} item={item} />
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
 }
+
+function Quote({ item }: { item: TestimonialItem }) {
+  return (
+    <figure className="quote">
+      <Icon name="quote" className="quote__mark" />
+      <blockquote style={{ margin: 0 }}>
+        <p className="quote__text">{item.description}</p>
+      </blockquote>
+      <figcaption className="quote__who">
+        {item.author_image ? (
+          <img className="quote__avatar" src={item.author_image} alt={item.author_name || ""} loading="lazy" decoding="async" />
+        ) : (
+          <span className="quote__avatar quote__avatar--empty" aria-hidden="true" />
+        )}
+        <span>
+          <strong style={{ display: "block", fontWeight: 600 }}>{item.author_name}</strong>
+          <span className="muted" style={{ fontSize: "0.92rem" }}>{item.author_location}</span>
+        </span>
+      </figcaption>
+    </figure>
+  );
+}
+

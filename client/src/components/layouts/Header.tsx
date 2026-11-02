@@ -1,140 +1,282 @@
-"use client"
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { useServicesData } from "@/context/ServiceContext";
-import Link from "next/link";
+import { ensureGsap, gsap, ScrollTrigger } from "@/motion/gsap";
+import { lockScroll } from "@/motion/scroll";
+import { prefersReducedMotion } from "@/motion/reducedMotion";
+import { useMagnetic } from "@/motion/hooks";
+import Icon from "@/components/ui/Icon";
 
-const Header = () => {
+interface NavGroup {
+  title: string;
+  links: { label: string; href: string; external?: boolean }[];
+}
 
-    const { siteData } = useSiteSettings();
-    const { serviceData } = useServicesData();
-    const lightLogo = siteData?.logo || "/images/logo-white.png";
-    const darkLogo = "/images/logo.png";
+const STATIC_GROUPS: NavGroup[] = [
+  {
+    title: "Company",
+    links: [
+      { label: "About us", href: "/about" },
+      { label: "Leadership", href: "/leadership" },
+      { label: "Approach", href: "/approach" },
+      { label: "Clients & stories", href: "/clients-stories" },
+    ],
+  },
+  {
+    title: "Research",
+    links: [
+      { label: "Technologies", href: "/technology" },
+      { label: "Enterprise expertise", href: "/enterprise-expertise" },
+      { label: "Case studies", href: "/case-studies" },
+    ],
+  },
+  {
+    title: "Explore",
+    links: [
+      { label: "Our products", href: "/products" },
+      { label: "Career", href: "/career" },
+      { label: "Insight", href: "/blogs" },
+      { label: "Reach us", href: "/reach-us" },
+    ],
+  },
+];
 
-    const headerServices = (serviceData?.services ?? [])
-        .filter((item) => item?.show_in_page && item?.slug)
-        .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
+const PRIMARY = [
+  { label: "Services", href: "/services" },
+  { label: "Products", href: "/products" },
+  { label: "Insight", href: "/blogs" },
+  { label: "Career", href: "/career" },
+];
 
-    return (
-        <header className="header-with-topbar">
-            <div className="top-header-area bg-black padding-5px-tb">
-                <div className="container-lg">
-                    <div className="row align-items-center m-0">
-                        <div className="col-md-6 ps-lg-0 text-uppercase alt-font d-flex align-items-center justify-content-center justify-content-md-start gap-2">
-                            {/* <div className="separator-line-verticle-extra-small bg-dark-gray d-inline-block margin-two-half-lr position-relative align-middle">
-                            </div> */}
-                            <a href={`mailto:${siteData?.email}`} className="text-link-white-2 line-height-normal">{siteData?.email}</a> |
-                            <a href={`tel:+91${siteData?.mobile}`} className="text-link-white-2 line-height-normal"> +91-{siteData?.mobile}</a>
-                        </div>
-                        <div className="col-md-6 pe-lg-0 d-none d-md-flex align-items-center justify-content-end">
-                            <div className="icon-social-very-small d-inline-block line-height-normal">
-                                {siteData?.social_links?.facebook && (
-                                    <a href={siteData?.social_links?.facebook} title="Facebook" target="_blank" rel="noopener noreferrer" className="text-link-white-2"><i className="fab fa-facebook-f" aria-hidden="true" /></a>
-                                )}
-                                {siteData?.social_links?.twitter && (
-                                    <a href={siteData?.social_links?.twitter} title="Twitter" target="_blank" rel="noopener noreferrer" className="text-link-white-2"><i className="ri-twitter-x-line"></i></a>
-                                )}
-                                {siteData?.social_links?.linkedin && (
-                                    <a href={siteData?.social_links?.linkedin} title="Linked In" target="_blank" rel="noopener noreferrer" className="text-link-white-2"><i className="fab fa-linkedin-in" /></a>
-                                )}
-                                {siteData?.social_links?.instagram && (
-                                    <a href={siteData?.social_links?.instagram} title="Instagram" target="_blank" rel="noopener noreferrer" className="text-link-white-2"><i className="fab fa-instagram" /></a>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <nav className="navbar navbar-default bootsnav navbar-top header-light-transparent background-transparent navbar-expand-lg">
-                    <div className="container-lg nav-header-container">
-                        <div className="col-auto ps-0">
-                            <Link href="/" title="Pofo" className="logo">
-                                {/* <img src={lightLogo} data-at2x="images/logo.png" className="logo-dark default" alt="Pofo" />
-                                <img src={darkLogo} data-at2x="images/logo-white.png" alt="Pofo" className="logo-light" /> */}
-                                {
-                                    siteData?.logo?.includes("logo-white.png") ? (
+export default function Header() {
+  const { siteData } = useSiteSettings();
+  const { serviceData } = useServicesData();
+  const pathname = usePathname();
 
-                                        <img src={darkLogo} data-at2x="images/logo-white.png" alt="Pofo" className="main-logo" />
-                                    ) : (
+  const [open, setOpen] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+  const ctaRef = useRef<HTMLAnchorElement>(null);
+  const menuTl = useRef<gsap.core.Timeline | null>(null);
+  const unlock = useRef<(() => void) | null>(null);
 
-                                        <img src={lightLogo} data-at2x="images/logo.png" className="main-logo" alt="Pofo" />
-                                    )
-                                }
-                            </Link>
-                        </div>
-                        <div className="col accordion-menu pe-0 pe-md-3">
-                            <button type="button" className="navbar-toggler collapsed" data-bs-toggle="collapse" data-bs-target="#navbar-collapse-toggle-1">
-                                <span className="sr-only">toggle navigation</span>
-                                <span className="icon-bar" />
-                                <span className="icon-bar" />
-                                <span className="icon-bar" />
-                            </button>
-                            <div className="navbar-collapse collapse justify-content-end" id="navbar-collapse-toggle-1">
-                                <ul id="accordion" className="nav navbar-nav navbar-left no-margin alt-font text-normal" data-in="animate__fadeIn" data-out="animate__fadeOut">
-                                    <li className="dropdown simple-dropdown"><Link href="#"> Company </Link><i className="fas fa-angle-down dropdown-toggle" data-bs-toggle="dropdown" aria-hidden="true" />
-                                        <ul className="dropdown-menu" role="menu">
-                                            <li><Link href="/about">About Us</Link></li>
-                                            <li><Link href="/leadership">Our Leadership</Link></li>
-                                            <li><Link href="/approach">Approach</Link> </li>
-                                            <li><Link href="/clients-stories">Our Clients and Stories</Link></li>
-                                        </ul>
-                                    </li>
-                                    <li className="dropdown simple-dropdown d-block d-md-none"><Link href="/services">Services</Link><i className="fas fa-angle-down dropdown-toggle" data-bs-toggle="dropdown" aria-hidden="true" />
-                                        <ul className="dropdown-menu" role="menu">
-                                            {headerServices.map((service) => (
-                                                <li key={service._id || service.slug}>
-                                                    <Link href={`/service/${service.slug}`}>{service.name}</Link>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </li>
-                                    <li className="dropdown simple-dropdown serviceDropdown d-none d-md-block"><Link href="/services">Services</Link><i className="fas fa-angle-down dropdown-toggle" data-bs-toggle="dropdown" aria-hidden="true" />
-                                        <div className="dropdown-menu serviceDropdownList" role="menu">
-                                            <div className="row">
-                                                <div className="d-none d-md-block col-md-6">
-                                                    <h5 className="p-5 d-flex justify-content-between">Our Service  <i className="ri-arrow-right-line"></i></h5>
+  useMagnetic(ctaRef, 0.18);
 
-                                                </div>
-                                                <div className="col-md-6">
-                                                    <ul className="dropdown-menu">
-                                                        {headerServices.map((service) => (
-                                                            <li key={service._id || service.slug}>
-                                                                <Link href={`/service/${service.slug}`}>{service.name}</Link>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-                                            </div>
+  const services = (serviceData?.services ?? [])
+    .filter((item) => item?.show_in_page && item?.slug)
+    .sort((a, b) => (a?.order ?? 0) - (b?.order ?? 0));
 
-                                        </div>
-                                    </li>
-                                    {/* <li className="disabled"><Link href="/legacy" onClick={(e) => e.preventDefault()}
-                                        style={{ pointerEvents: "none", opacity: 0.5, cursor: "not-allowed" }}
-                                    >Leagacy</Link> </li> */}
-                                    <li className="dropdown simple-dropdown"><Link href="#"> Research </Link><i className="fas fa-angle-down dropdown-toggle" data-bs-toggle="dropdown" aria-hidden="true" />
-                                        <ul className="dropdown-menu" role="menu">
-                                            {/* Expertise */}
-                                            <li><Link href="/technology">Technologies</Link> </li>
-                                            {/* Industries */}
-                                            <li><Link href="/enterprise-expertise">Enterprise Experties</Link> </li>
-                                            {/* <li><Link href="/domain-expertise">Enterprise Experties</Link> </li> */}
+  const groups: NavGroup[] = [
+    STATIC_GROUPS[0],
+    {
+      title: "Services",
+      links: [
+        { label: "All services", href: "/services" },
+        ...services.map((service) => ({ label: service.name || service.title || service.slug || "", href: `/service/${service.slug}` })),
+      ],
+    },
+    ...STATIC_GROUPS.slice(1),
+  ];
 
-                                            <li><Link href="/case-studies">Case Studies</Link> </li>
-                                        </ul>
-                                    </li>
-                                    <li><Link href="/products">Our Products</Link></li>
-                                    <li><Link href="/career">Career</Link></li>
-                                    <li><Link href="/blogs">Insight </Link> </li>
-                                </ul>
-                                <div className="ms-3 my-2">
-                                    <Link href="/reach-us" className="btn btn-small btn-rounded btn-transparent-black">Reach us</Link>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </nav>
+  // Solid bar once the hero is left behind.
+  useEffect(() => {
+    if (!navRef.current) return;
+    ensureGsap();
+    const trigger = ScrollTrigger.create({
+      start: "top -40",
+      onToggle: (self) => navRef.current?.classList.toggle("is-solid", self.isActive),
+    });
+    return () => trigger.kill();
+  }, []);
+
+  // Full-screen index menu timeline (built once, played in both directions).
+  useEffect(() => {
+    const menu = menuRef.current;
+    if (!menu) return;
+    ensureGsap();
+    const reduced = prefersReducedMotion();
+    const tl = gsap.timeline({ paused: true, defaults: { ease: "expo.inOut" } });
+    tl.to(menu, { clipPath: "inset(0 0 0% 0)", duration: reduced ? 0.01 : 0.9, onStart: () => menu.classList.add("is-open") })
+      .fromTo(
+        menu.querySelectorAll("[data-menu-item]"),
+        { y: 40, autoAlpha: 0 },
+        { y: 0, autoAlpha: 1, duration: reduced ? 0.01 : 0.9, stagger: 0.03, ease: "expo.out" },
+        0.35,
+      )
+      .fromTo(menu.querySelectorAll("[data-menu-fade]"), { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.6 }, 0.6);
+    menuTl.current = tl;
+    return () => {
+      tl.kill();
+      menuTl.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const tl = menuTl.current;
+    if (!tl) return;
+    if (open) {
+      unlock.current = lockScroll();
+      tl.timeScale(1).play(0);
+      const first = menuRef.current?.querySelector<HTMLElement>("a");
+      window.setTimeout(() => first?.focus({ preventScroll: true }), 350);
+    } else {
+      tl.timeScale(1.6).reverse();
+      const release = unlock.current;
+      unlock.current = null;
+      window.setTimeout(() => {
+        release?.();
+        menuRef.current?.classList.remove("is-open");
+      }, 500);
+    }
+  }, [open]);
+
+  // Close on route change and Escape.
+  const [lastPath, setLastPath] = useState(pathname);
+  if (pathname !== lastPath) {
+    setLastPath(pathname);
+    setOpen(false);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        toggleRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  const isActive = (href: string) => pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
+
+  return (
+    <>
+      <a href="#main" className="skip-link">
+        Skip to content
+      </a>
+
+      <header>
+        <nav ref={navRef} className="nav" aria-label="Primary">
+          <div className="nav__inner">
+            <Link href="/" className="nav__brand" aria-label="Shanvia Tech Solutions, home" onClick={() => setOpen(false)}>
+              <BrandMark />
+              <span className="nav__wordmark">
+                Shanvia<span style={{ color: "var(--signal)" }}>.</span>
+              </span>
+            </Link>
+
+            <ul className="nav__links" style={{ listStyle: "none", margin: 0, padding: 0 }}>
+              {PRIMARY.map((item) => (
+                <li key={item.href}>
+                  <Link href={item.href} aria-current={isActive(item.href) ? "page" : undefined}>
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+
+            <div className="nav__actions">
+              <Link ref={ctaRef} href="/reach-us" className="btn btn--signal nav__cta" style={{ minHeight: 44, padding: "0.7rem 1.1rem" }}>
+                Start a project <Icon name="arrow" className="btn__arrow" />
+              </Link>
+              <button
+                ref={toggleRef}
+                type="button"
+                className="nav__toggle"
+                aria-expanded={open}
+                aria-controls="site-menu"
+                onClick={() => setOpen((v) => !v)}
+              >
+                <span className="nav__toggle-bars" aria-hidden="true" />
+                <span>{open ? "Close" : "Menu"}</span>
+              </button>
             </div>
-        </header>
+          </div>
+        </nav>
 
-    );
-};
+        <div
+          ref={menuRef}
+          id="site-menu"
+          className="menu"
+          role="dialog"
+          aria-modal={open}
+          aria-label="Site index"
+          aria-hidden={!open}
+        >
+          <div className="menu__grid">
+            {groups.map((group, gi) => (
+              <nav key={group.title} aria-label={group.title} data-menu-fade>
+                <p className="menu__group-title">{String(gi + 1).padStart(2, "0")} — {group.title}</p>
+                <ul className={gi === 0 ? "menu__list" : "menu__sub"} style={{ listStyle: "none", padding: 0, margin: 0 }}>
+                  {group.links.map((link) => (
+                    <li key={`${group.title}-${link.href}`} className={gi === 0 ? undefined : undefined}>
+                      {gi === 0 ? (
+                        <Link href={link.href} className="menu__link" data-menu-item>
+                          <span aria-hidden="true">{String(group.links.indexOf(link) + 1).padStart(2, "0")}</span>
+                          {link.label}
+                        </Link>
+                      ) : (
+                        <Link href={link.href} data-menu-item>
+                          {link.label}
+                        </Link>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            ))}
+          </div>
 
-export default Header;
+          <div className="menu__foot" data-menu-fade>
+            <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap" }}>
+              {siteData?.email ? (
+                <a href={`mailto:${siteData.email}`} className="muted">
+                  {siteData.email}
+                </a>
+              ) : null}
+              {siteData?.mobile ? (
+                <a href={`tel:+91${siteData.mobile}`} className="muted">
+                  +91 {siteData.mobile}
+                </a>
+              ) : null}
+            </div>
+            <div style={{ display: "flex", gap: "1rem" }}>
+              {siteData?.social_links?.linkedin ? (
+                <a href={siteData.social_links.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                  <Icon name="linkedin" />
+                </a>
+              ) : null}
+              {siteData?.social_links?.instagram ? (
+                <a href={siteData.social_links.instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                  <Icon name="instagram" />
+                </a>
+              ) : null}
+              {siteData?.social_links?.facebook ? (
+                <a href={siteData.social_links.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+                  <Icon name="facebook" />
+                </a>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </header>
+    </>
+  );
+}
+
+/** Mark: two offset signal squares. Carries the identity without a logo file. */
+function BrandMark() {
+  return (
+    <svg className="nav__mark" viewBox="0 0 34 34" aria-hidden="true" focusable="false">
+      <rect x="1" y="1" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <rect x="13" y="13" width="20" height="20" fill="var(--signal)" />
+    </svg>
+  );
+}

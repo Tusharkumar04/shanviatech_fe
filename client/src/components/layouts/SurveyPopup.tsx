@@ -16,6 +16,7 @@ import {
   type VerificationChannel,
 } from "@/services/api/surveyApi";
 import { config } from "@/utils/config";
+import Icon from "@/components/ui/Icon";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -861,7 +862,7 @@ const SurveyPopup = () => {
               </div>
             </div>
             <button
-              className="btn btn-sm btn-light border-0 bg-transparent text-white fs-5"
+              className="sp-btn sp-btn-sm sp-btn-light border-0 bg-transparent text-white fs-5"
               onClick={handleSkip}
             >
               ✕
@@ -990,7 +991,7 @@ const SurveyPopup = () => {
                             {field.is_required && <span className="text-danger">*</span>}
                             {isVerified && (
                               <span
-                                className="badge rounded-pill bg-success ms-1"
+                                className="sp-badge rounded-pill bg-success ms-1"
                                 style={{ fontSize: "0.65rem", fontWeight: 600 }}
                               >
                                 ✓ Verified
@@ -1010,7 +1011,7 @@ const SurveyPopup = () => {
                           ) : (
                             <input
                               type={type}
-                              className={`form-control ${formErrors[field.label] ? "is-invalid" : ""}`}
+                              className={`sp-input ${formErrors[field.label] ? "is-invalid" : ""}`}
                               style={{ height: "40px", fontSize: "0.9rem" }}
                               placeholder={`Enter ${field.label}`}
                               required={field.is_required}
@@ -1031,7 +1032,7 @@ const SurveyPopup = () => {
                     <>
                       {submitError && (
                         <div
-                          className="alert alert-danger w-100 py-2 px-3 mb-0 mt-2"
+                          className="sp-alert sp-alert-danger w-100 py-2 px-3 mb-0 mt-2"
                           style={{ fontSize: "0.8rem" }}
                           role="alert"
                         >
@@ -1039,7 +1040,7 @@ const SurveyPopup = () => {
                         </div>
                       )}
                       <button
-                        className="btn btn-primary w-100 mt-2"
+                        className="sp-btn sp-btn-primary w-100 mt-2"
                         onClick={handleFormSubmit}
                         disabled={otpBusy}
                       >
@@ -1065,7 +1066,7 @@ const SurveyPopup = () => {
                         type="text"
                         inputMode="numeric"
                         autoComplete="one-time-code"
-                        className={`form-control ${otpError ? "is-invalid" : ""}`}
+                        className={`sp-input ${otpError ? "is-invalid" : ""}`}
                         style={{ height: "40px", fontSize: "1rem", letterSpacing: "0.3em" }}
                         placeholder="Enter code"
                         value={otpValue}
@@ -1088,7 +1089,7 @@ const SurveyPopup = () => {
                       )}
 
                       <button
-                        className="btn btn-primary w-100 mt-2"
+                        className="sp-btn sp-btn-primary w-100 mt-2"
                         onClick={handleVerifyOtp}
                         disabled={otpBusy || !otpValue}
                       >
@@ -1098,7 +1099,7 @@ const SurveyPopup = () => {
                       <div className="d-flex justify-content-between align-items-center mt-2">
                         <button
                           type="button"
-                          className="btn btn-link btn-sm text-decoration-none p-0"
+                          className="sp-btn sp-btn-link sp-btn-sm text-decoration-none p-0"
                           style={{ fontSize: "0.8rem", color: "#64748b" }}
                           onClick={cancelVerification}
                           disabled={otpBusy}
@@ -1107,7 +1108,7 @@ const SurveyPopup = () => {
                         </button>
                         <button
                           type="button"
-                          className="btn btn-link btn-sm text-decoration-none p-0"
+                          className="sp-btn sp-btn-link sp-btn-sm text-decoration-none p-0"
                           style={{
                             fontSize: "0.8rem",
                             color: resendIn > 0 ? "#94a3b8" : "#2563EB",
@@ -1124,7 +1125,7 @@ const SurveyPopup = () => {
                 {history.length > 0 && !connnectedToAdmin && !verifyStep && (
                   <button
                     type="button"
-                    className="ms-3 mt-4 btn btn-link btn-sm text-decoration-none p-0 d-inline-flex align-items-center"
+                    className="ms-3 mt-4 sp-btn sp-btn-link sp-btn-sm text-decoration-none p-0 d-inline-flex align-items-center"
                     style={{ fontSize: "0.8rem", color: "#64748b" }}
                     onClick={goBack}
                   >
@@ -1133,7 +1134,7 @@ const SurveyPopup = () => {
                 )}
                 {connnectedToAdmin && !isLastQuestion && (
                   <button
-                    className="ms-2 mt-2 btn btn-link text-decoration-none text-primary d-flex align-items-center"
+                    className="ms-2 mt-2 sp-btn sp-btn-link text-decoration-none text-primary d-flex align-items-center"
                     onClick={() => setConnectedToAdmin(false)}
                   >
                     <span className="me-1">✍️</span>
@@ -1150,7 +1151,7 @@ const SurveyPopup = () => {
                 {history.length > 0 && !connnectedToAdmin && (
                   <button
                     type="button"
-                    className="ms-1 mt-2 btn btn-link btn-sm text-decoration-none p-0 d-inline-flex align-items-center"
+                    className="ms-1 mt-2 sp-btn sp-btn-link sp-btn-sm text-decoration-none p-0 d-inline-flex align-items-center"
                     style={{ fontSize: "0.8rem", color: "#64748b" }}
                     onClick={goBack}
                   >
@@ -1177,19 +1178,19 @@ const SurveyPopup = () => {
               surveyResponses?.responses?.length > 0 &&
               !currentQuestions[currentQuestionInd]?.question &&
               Object.keys(surveyResponses?.user_data || {}).length > 3 && (
-                <div className="card shadow-sm my-4">
-                  <div className="card-body text-center">
-                    <h5 className="card-title">Need Help?</h5>
-                    <p className="card-text text-muted">
+                <div className="sp-card shadow-sm my-4">
+                  <div className="sp-card-body text-center">
+                    <h5 className="sp-card-title">Need Help?</h5>
+                    <p className="sp-card-text text-muted">
                       You can connect with our consultant for further assistance.
                     </p>
                     {isAdminOnline ? (
-                      <button className="btn btn-primary" onClick={connectToAdmin}>
-                        <i className="fas fa-comment-dots"></i> Chat with our Consultant
+                      <button className="sp-btn sp-btn-primary" onClick={connectToAdmin}>
+                        Chat with our Consultant
                       </button>
                     ) : (
-                      <div className="alert alert-warning mt-3" role="alert">
-                        <i className="fas fa-info-circle"></i> All our experts are busy
+                      <div className="sp-alert sp-alert-warning mt-3" role="alert">
+                        All our experts are busy
                         and not available for chat right now. We will be in touch with
                         you at the provided contact information.
                       </div>
@@ -1203,16 +1204,16 @@ const SurveyPopup = () => {
                 <div className="mt-2">
                   <div className="d-flex justify-content-between align-items-center border-bottom pb-2 mb-4">
                     <h5 className="fw-bold text-primary mb-0">
-                      <i className="fas fa-comments me-2"></i> Chat with Consultant
+                      Chat with Consultant
                     </h5>
                     <span
-                      className={`badge rounded-pill ${isAdminOnline ? "bg-success" : "bg-secondary"}`}
+                      className={`sp-badge rounded-pill ${isAdminOnline ? "bg-success" : "bg-secondary"}`}
                     >
                       {isAdminOnline ? "Online" : "Offline"}
                     </span>
                   </div>
 
-                  <div className="card-body">
+                  <div className="sp-card-body">
                     {surveyResponses?.chat?.length === 0 && (
                       <p className="text-muted text-center">No messages yet. Say hello 👋</p>
                     )}
@@ -1236,8 +1237,7 @@ const SurveyPopup = () => {
                                 <div className="mt-1">
                                   {isUser ? (
                                     <span className="sp-user-avatar">
-                                      <i className="fas fa-user"></i>
-                                    </span>
+                                      </span>
                                   ) : (
                                     <img
                                       src={AVATAR}
@@ -1299,8 +1299,8 @@ const SurveyPopup = () => {
                   </div>
 
                   {!isAdminOnline && (
-                    <div className="alert alert-warning mt-3 text-center" role="alert">
-                      <i className="fas fa-info-circle"></i> All our experts are busy and
+                    <div className="sp-alert sp-alert-warning mt-3 text-center" role="alert">
+                      All our experts are busy and
                       not available for chat right now. We will be in touch with you at
                       the provided contact information.
                     </div>
@@ -1356,7 +1356,7 @@ const SurveyPopup = () => {
                   aria-label="Send"
                   disabled={!hasText}
                 >
-                  <i className="fas fa-paper-plane" style={{ color: "#ffffff", fontSize: "14px" }}></i>
+                  <Icon name="arrow" />
                 </button>
               </div>
             </form>
@@ -1381,7 +1381,7 @@ const SurveyPopup = () => {
           }}
           onClick={handleReopen}
         >          
-          {/*<i className="fas fa-comment-alt"></i>*/}
+          {/**/}
           <img src="/get-quotes-btn.png" alt="Book a Free Course" />
         </button>
       )}
