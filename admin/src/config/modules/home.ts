@@ -1,0 +1,128 @@
+import type { ModuleConfig } from "../module-config";
+import { seoField, type FieldConfig } from "../field-config";
+
+const sectionFields: FieldConfig[] = [
+  { name: "title", type: "text", label: "Title", required: true, colSpan: 2 },
+  { name: "subtitle", type: "text", label: "Subtitle", required: true },
+  { name: "image", type: "image", label: "Image", required: true },
+  {
+    name: "description",
+    type: "textarea",
+    label: "Description",
+    required: true,
+    rows: 3,
+    colSpan: 2,
+  },
+  { name: "button_title", type: "text", label: "Button label", required: true },
+  { name: "link", type: "text", label: "Link URL", required: true },
+];
+
+export const homeModule: ModuleConfig = {
+  key: "home",
+  apiBase: "/admin/home",
+  kind: "single",
+  title: "Home",
+  singularLabel: "Home Page",
+  pluralLabel: "Home Page",
+  description: "The landing page hero and feature sections.",
+  icon: "Home",
+  routePath: "home",
+  detailsBy: "none",
+  formTabs: [
+    { id: "banners", label: "Banners", fieldNames: ["banners"] },
+    { id: "about", label: "About", fieldNames: ["about"] },
+    { id: "approach", label: "Our Approach", fieldNames: ["our_approach"] },
+    { id: "wedo", label: "We Do", fieldNames: ["we_do"] },
+    { id: "why", label: "Why Choose", fieldNames: ["why_choose"] },
+    { id: "seo", label: "SEO", fieldNames: ["metaInformation"] },
+  ],
+  fields: [
+    {
+      name: "banners",
+      type: "array",
+      label: "Banners",
+      itemLabel: "Banner",
+      colSpan: 2,
+      fields: [
+        { name: "title", type: "text", label: "Title", required: true },
+        { name: "subtitle", type: "text", label: "Subtitle", required: true },
+        { name: "image", type: "image", label: "Image", required: true },
+        {
+          name: "button_title",
+          type: "text",
+          label: "Button label",
+          required: true,
+        },
+        { name: "link", type: "text", label: "Link URL", required: true },
+        { name: "order", type: "number", label: "Order", required: true },
+      ],
+    },
+    {
+      name: "about",
+      type: "group",
+      label: "About",
+      colSpan: 2,
+      fields: [
+        {
+          name: "title",
+          type: "text",
+          label: "Title",
+          required: true,
+          colSpan: 2,
+        },
+        {
+          name: "description",
+          type: "textarea",
+          label: "Description",
+          required: true,
+          rows: 3,
+          colSpan: 2,
+        },
+        {
+          name: "highlights",
+          type: "array",
+          label: "Highlights",
+          itemLabel: "Highlight",
+          colSpan: 2,
+          fields: [
+            { name: "title", type: "text", label: "Title", required: true },
+            { name: "image", type: "image", label: "Image", required: true },
+            {
+              name: "description",
+              type: "textarea",
+              label: "Description",
+              required: true,
+              rows: 2,
+              colSpan: 2,
+            },
+            { name: "button_title", type: "text", label: "Button label", required: true },
+            { name: "link", type: "text", label: "Link URL" },
+            { name: "order", type: "number", label: "Order" },
+          ],
+        },
+      ],
+    },
+    {
+      name: "our_approach",
+      type: "group",
+      label: "Our Approach",
+      colSpan: 2,
+      fields: sectionFields,
+    },
+    {
+      name: "we_do",
+      type: "group",
+      label: "We Do",
+      colSpan: 2,
+      fields: sectionFields,
+    },
+    {
+      name: "why_choose",
+      type: "group",
+      label: "Why Choose",
+      colSpan: 2,
+      fields: sectionFields,
+    },
+    seoField(),
+  ],
+};

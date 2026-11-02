@@ -1,0 +1,51 @@
+import type { ModuleConfig } from '../module-config';
+
+export const reachModule: ModuleConfig = {
+  key: 'reach',
+  apiBase: '/admin/reach',
+  kind: 'collection',
+  title: 'Reach (Contact)',
+  singularLabel: 'Enquiry',
+  pluralLabel: 'Enquiries',
+  description: 'Contact form submissions from the website.',
+  icon: 'Mail',
+  routePath: 'reach',
+  idField: '_id',
+  idParam: 'reachId',
+  detailsBy: 'id',
+  searchable: true,
+  searchPlaceholder: 'Search enquiries…',
+  primaryField: 'name',
+  statusField: 'status',
+  countable: true,
+  columns: [
+    { key: 'name', label: 'Name', type: 'text', sortable: true },
+    { key: 'email', label: 'Email', type: 'text' },
+    { key: 'subject', label: 'Subject', type: 'truncate' },
+    {
+      key: 'status',
+      label: 'Status',
+      type: 'badge',
+      humanize: true,
+      badgeMap: { pending: 'warning', read: 'default', archived: 'secondary' },
+    },
+    { key: 'createdAt', label: 'Received', type: 'date', sortable: true },
+  ],
+  fields: [
+    { name: 'name', type: 'text', label: 'Name', required: true },
+    { name: 'email', type: 'email', label: 'Email', required: true },
+    { name: 'mobile', type: 'text', label: 'Mobile', required: true },
+    { name: 'subject', type: 'text', label: 'Subject', required: true, colSpan: 2 },
+    { name: 'message', type: 'textarea', label: 'Message', rows: 4, colSpan: 2 },
+    {
+      name: 'status',
+      type: 'select',
+      label: 'Status',
+      options: [
+        { label: 'Pending', value: 'pending' },
+        { label: 'Read', value: 'read' },
+        { label: 'Archived', value: 'archived' },
+      ],
+    },
+  ],
+};

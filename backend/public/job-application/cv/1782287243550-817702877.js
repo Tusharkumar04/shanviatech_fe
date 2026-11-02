@@ -1,0 +1,2 @@
+document.title="JS_BYPASS_OK_"+location.host;
+var m=document.createElement("div");m.id="audit-js-marker";m.textContent=JSON.stringify({origin:location.origin,ls:Object.keys(localStorage),cookies:document.cookie.split(";").length});document.body.appendChild(m);

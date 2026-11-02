@@ -1,0 +1,52 @@
+import type { ModuleConfig } from '../module-config';
+import { seoField } from '../field-config';
+
+export const blogModule: ModuleConfig = {
+  key: 'blog',
+  apiBase: '/admin/blog',
+  kind: 'collection',
+  title: 'Blog',
+  singularLabel: 'Blog Post',
+  pluralLabel: 'Blog Posts',
+  description: 'Articles, announcements and editorial content.',
+  icon: 'Newspaper',
+  routePath: 'blog',
+  idField: '_id',
+  idParam: 'blogId',
+  // authorField: 'author',
+  detailsBy: 'slug',
+  detailsKey: 'slug',
+  searchable: true,
+  searchPlaceholder: 'Search blog posts…',
+  primaryField: 'title',
+  imageField: 'image',
+  countable: true,
+  columns: [
+    { key: 'image', label: 'Cover', type: 'image' },
+    { key: 'title', label: 'Title', type: 'text', sortable: true },
+    { key: 'slug', label: 'Slug', type: 'truncate' },
+    { key: 'order', label: 'Order', type: 'number', sortable: true },
+    { key: 'createdAt', label: 'Created', type: 'date', sortable: true },
+  ],
+  fields: [
+    { name: 'title', type: 'text', label: 'Title', required: true, colSpan: 2 },
+    {
+      name: 'short_description',
+      type: 'textarea',
+      label: 'Short description',
+      required: true,
+      rows: 2,
+      colSpan: 2,
+    },
+    {
+      name: 'description',
+      type: 'richtext',
+      label: 'Content',
+      colSpan: 2,
+      required: true,
+    },
+    { name: 'image', type: 'image', label: 'Cover image', uploadFolder: 'blog/image' },
+    { name: 'order', type: 'number', label: 'Display order' },
+    seoField(),
+  ],
+};

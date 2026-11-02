@@ -1,0 +1,21 @@
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 12:21:22 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/home/details, Error Message: Home details not found"}
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 12:27:13 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/home/details, Error Message: Home details not found"}
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 12:28:35 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/home/details, Error Message: Home details not found"}
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 12:30:01 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/home/details, Error Message: Home details not found"}
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 12:30:20 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/home/details, Error Message: Home details not found"}
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 12:30:21 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/home/details, Error Message: Home details not found"}
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 12:31:24 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/home/details, Error Message: Home details not found"}
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 12:32:39 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/home/details, Error Message: Home details not found"}
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 12:35:33 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/home/details, Error Message: Home details not found"}
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 12:36:17 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/home/details, Error Message: Home details not found"}
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 12:47:25 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/site-setting/details, Error Message: Site setting details not found"}
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 12:47:27 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/service/details, Error Message: Service details not found"}
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 12:48:13 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/service/details, Error Message: Service details not found"}
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 12:48:13 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/site-setting/details, Error Message: Site setting details not found"}
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 12:48:57 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/service/details, Error Message: Service details not found"}
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 12:49:50 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/site-setting/details, Error Message: Site setting details not found"}
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 12:51:04 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/site-setting/details, Error Message: Site setting details not found"}
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 12:51:05 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/site-setting/details, Error Message: Site setting details not found"}
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 5:45:59 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/cms-content/details, Error Message: Cms content details not found"}
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 5:54:04 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/cms-content/details, Error Message: Cms content details not found"}
+{"level":"error","message":"Status Code: 404 on 30th May 2026, 5:54:04 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/cms-content/details, Error Message: Cms content details not found"}

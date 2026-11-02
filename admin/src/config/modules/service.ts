@@ -1,0 +1,106 @@
+import type { ModuleConfig } from '../module-config';
+import { seoField, type FieldConfig } from '../field-config';
+
+const ctaFields: FieldConfig[] = [
+  { name: 'title', type: 'text', label: 'Title', required: true, colSpan: 2 },
+  { name: 'subtitle', type: 'text', label: 'Subtitle', required: true },
+  { name: 'description', type: 'textarea', label: 'Description', required: true, rows: 3, colSpan: 2 },
+  { name: 'button_title', type: 'text', label: 'Button label' },
+  { name: 'link', type: 'text', label: 'Link URL' },
+];
+
+export const serviceModule: ModuleConfig = {
+  key: 'service',
+  apiBase: '/admin/service',
+  kind: 'single',
+  title: 'Service',
+  singularLabel: 'Service Page',
+  pluralLabel: 'Service Page',
+  description: 'The services overview page and offerings.',
+  icon: 'Boxes',
+  routePath: 'service',
+  detailsBy: 'none',
+  formTabs: [
+    { id: 'services', label: 'Services', fieldNames: ['services'] },
+    { id: 'experiences', label: 'Digital Experiences', fieldNames: ['digital_experiences'] },
+    { id: 'agile', label: 'Agile Project', fieldNames: ['agile_project'] },
+    { id: 'solutions', label: 'Digital Solutions', fieldNames: ['digital_solutions'] },
+    { id: 'qa', label: 'Quality Assurance', fieldNames: ['quality_assurance'] },
+    { id: 'seo', label: 'SEO', fieldNames: ['metaInformation'] },
+  ],
+  fields: [
+    {
+      name: 'services',
+      type: 'array',
+      label: 'Services',
+      itemLabel: 'Service',
+      colSpan: 2,
+      fields: [
+        { name: 'name', type: 'text', label: 'Name', required: true },
+        { name: 'title', type: 'text', label: 'Title', required: true },
+        { name: 'subtitle', type: 'text', label: 'Subtitle' },
+        { name: 'image', type: 'image', label: 'Image', required: true },
+        { name: 'order', type: 'number', label: 'Order' },
+        { name: 'show_in_page', type: 'switch', label: 'Show in page' },
+        {
+          name: 'highlights',
+          type: 'array',
+          label: 'Highlights',
+          itemLabel: 'Highlight',
+          colSpan: 2,
+          fields: [
+            { name: 'title', type: 'text', label: 'Title', required: true },
+            { name: 'description', type: 'textarea', label: 'Description', required: true, rows: 2, colSpan: 2 },
+            { name: 'image', type: 'image-list', label: 'Images', colSpan: 2 },
+            { name: 'order', type: 'number', label: 'Order' },
+          ],
+        },
+        seoField(),
+      ],
+    },
+    { name: 'digital_experiences', type: 'group', label: 'Digital Experiences', colSpan: 2, fields: ctaFields },
+    {
+      name: 'agile_project',
+      type: 'group',
+      label: 'Agile Project',
+      colSpan: 2,
+      fields: [...ctaFields, { name: 'image', type: 'image', label: 'Image' }],
+    },
+    {
+      name: 'digital_solutions',
+      type: 'array',
+      label: 'Digital Solutions',
+      itemLabel: 'Solution',
+      colSpan: 2,
+      fields: [
+        { name: 'title', type: 'text', label: 'Title', required: true, colSpan: 2 },
+        { name: 'subtitlline', type: 'text', label: 'Subtitle' },
+        {
+          name: 'highlights',
+          type: 'array',
+          label: 'Highlights',
+          itemLabel: 'Highlight',
+          colSpan: 2,
+          fields: [
+            { name: 'title', type: 'text', label: 'Title', required: true },
+            { name: 'subtitle', type: 'text', label: 'Subtitle', required: true },
+            { name: 'description', type: 'textarea', label: 'Description', required: true, rows: 2, colSpan: 2 },
+            { name: 'description2', type: 'textarea', label: 'Description 2', required: true, rows: 2, colSpan: 2 },
+            { name: 'image', type: 'image', label: 'Image', required: true },
+            { name: 'button_title', type: 'text', label: 'Button label' },
+            { name: 'link', type: 'text', label: 'Link URL' },
+            { name: 'order', type: 'number', label: 'Order' },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'quality_assurance',
+      type: 'group',
+      label: 'Quality Assurance',
+      colSpan: 2,
+      fields: [...ctaFields, { name: 'image', type: 'image', label: 'Image', required: true }],
+    },
+    seoField(),
+  ],
+};

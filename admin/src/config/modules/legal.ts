@@ -1,0 +1,67 @@
+import type { ModuleConfig } from '../module-config';
+import { seoField } from '../field-config';
+
+export const legalModule: ModuleConfig = {
+  key: 'legal',
+  apiBase: '/admin/legal',
+  kind: 'collection',
+  title: 'Legal',
+  singularLabel: 'Legal Document',
+  pluralLabel: 'Legal Documents',
+  description: 'Policies and legally binding documents.',
+  icon: 'Scale',
+  routePath: 'legal',
+  idField: '_id',
+  idParam: 'legalId',
+  detailsBy: 'type',
+  detailsKey: 'type',
+  searchable: true,
+  searchPlaceholder: 'Search legal documents…',
+  primaryField: 'title',
+  countable: true,
+  columns: [
+    { key: 'type', label: 'Type', type: 'badge', humanize: true },
+    { key: 'title', label: 'Title', type: 'text', sortable: true },
+    { key: 'version', label: 'Version', type: 'text' },
+    { key: 'updatedAt', label: 'Updated', type: 'date', sortable: true },
+  ],
+  fields: [
+    {
+      name: 'type',
+      type: 'select',
+      label: 'Document type',
+      required: true,
+      options: [
+        { label: 'Privacy Policy', value: 'privacy-policy' },
+        { label: 'Terms & Conditions', value: 'terms-and-conditions' },
+        { label: 'Cookie Policy', value: 'cookie-policy' },
+        { label: 'Refund Policy', value: 'refund-policy' },
+        { label: 'Shipping Policy', value: 'shipping-policy' },
+      ],
+    },
+    { name: 'version', type: 'text', label: 'Version', placeholder: '1.0' },
+    { name: 'title', type: 'text', label: 'Title', required: true, colSpan: 2 },
+    { name: 'effectiveDate', type: 'date', label: 'Effective date' },
+    { name: 'publishedAt', type: 'date', label: 'Published at' },
+    {
+      name: 'content',
+      type: 'richtext',
+      label: 'Content',
+      required: true,
+      colSpan: 2,
+    },
+    {
+      name: 'sections',
+      type: 'array',
+      label: 'Sections',
+      itemLabel: 'Section',
+      colSpan: 2,
+      fields: [
+        { name: 'heading', type: 'text', label: 'Heading', colSpan: 2 },
+        { name: 'content', type: 'textarea', label: 'Content', rows: 4, colSpan: 2 },
+        { name: 'order', type: 'number', label: 'Order' },
+      ],
+    },
+    seoField(),
+  ],
+};

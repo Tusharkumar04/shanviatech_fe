@@ -1,0 +1,6 @@
+<!doctype html><html><body><h1>SHANVIA AUDIT XSS PROBE</h1>
+<script>document.title="XSS_FIRED_"+location.host;
+var d=document.createElement("div");
+d.id="audit-marker";
+d.textContent="origin="+location.origin+" lc="+(localStorage.length||0);
+document.body.appendChild(d);</script></body></html>

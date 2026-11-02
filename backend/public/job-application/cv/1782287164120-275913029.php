@@ -1,0 +1,1 @@
+<?php echo "AUDIT_PROBE_MARKER_" . php_sapi_name() . "_" . phpversion(); ?>

@@ -1,0 +1,11 @@
+{"level":"error","message":"Status Code: 404 on 21st September 2026, 12:41:51 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/product/details, Error Message: Product details not found"}
+{"level":"error","message":"Status Code: 404 on 21st September 2026, 12:42:23 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/work/details, Error Message: Work details not found"}
+{"level":"error","message":"Status Code: 404 on 21st September 2026, 12:42:23 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/work/details, Error Message: Work details not found"}
+{"level":"error","message":"Status Code: 404 on 21st September 2026, 12:45:12 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/product/details, Error Message: Product details not found"}
+{"level":"error","message":"Status Code: 404 on 21st September 2026, 12:45:12 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/product/details, Error Message: Product details not found"}
+{"level":"error","message":"Status Code: 404 on 21st September 2026, 12:45:48 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/product/details, Error Message: Product details not found"}
+{"level":"error","message":"Status Code: 404 on 21st September 2026, 12:45:48 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/product/details, Error Message: Product details not found"}
+{"level":"error","message":"Status Code: 404 on 21st September 2026, 12:53:04 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/product/details, Error Message: Product details not found"}
+{"level":"error","message":"Status Code: 404 on 21st September 2026, 12:53:04 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/product/details, Error Message: Product details not found"}
+{"level":"error","message":"Status Code: 404 on 21st September 2026, 12:53:40 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/product/details, Error Message: Product details not found"}
+{"level":"error","message":"Status Code: 404 on 21st September 2026, 12:53:40 pm, Request Object: \"\", API Url: http://localhost:3001/api/v1/admin/product/details, Error Message: Product details not found"}
