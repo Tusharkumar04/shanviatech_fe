@@ -7,6 +7,7 @@ import Opener from "@/components/ui/Opener";
 import FrameImage from "@/components/ui/FrameImage";
 import SplitHeading from "@/components/ui/SplitHeading";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/StatePanels";
+import Projects from "./Projects";
 
 interface CaseStudyItem {
   _id?: string;
@@ -67,6 +68,7 @@ export default function CaseStudies() {
             : null}
         </div>
       </section>
+      <Projects />
     </>
   );
 }

@@ -12,6 +12,7 @@ import RevealGroup from "@/components/ui/RevealGroup";
 import ScrubStatement from "@/components/ui/ScrubStatement";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/StatePanels";
 import CareerAccordion, { type JobItem } from "./CareerAccordion";
+import WorkProcess from "./WorkProcess";
 
 interface WhyChooseUsHighlight {
   _id?: string;
@@ -164,6 +165,7 @@ export default function Approach() {
           </div>
         </section>
       ) : null}
+      <WorkProcess />
     </>
   );
 }

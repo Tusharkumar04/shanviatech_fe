@@ -40,6 +40,7 @@ export default function WhatPeopleSay() {
 
   return (
     <section className="section section--ink" aria-labelledby="testimonials-title">
+      <div className="orbs" aria-hidden="true"><i /><i /><i /></div>
       <div className="wrap">
         <div className="intro-head intro-head--row" style={{ alignItems: "end" }}>
           <div>

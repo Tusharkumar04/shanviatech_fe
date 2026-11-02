@@ -29,6 +29,7 @@ export default function HomeWeDo({ weDo }: HomeWeDoProps) {
 
   return (
     <section className="section section--ink" aria-labelledby="wedo-title">
+      <div className="orbs" aria-hidden="true"><i /><i /><i /></div>
       <div className="wrap split split--wide-right">
         <div>
           <p className="eyebrow">

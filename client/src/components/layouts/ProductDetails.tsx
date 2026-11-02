@@ -2,32 +2,27 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { getProductsApiCall } from "@/services/api/productsApi";
+import { getProductDetailsApiCall, type ProductDetail } from "@/services/api/productsApi";
 import { useApi } from "@/hooks/useApi";
 import Opener from "@/components/ui/Opener";
 import FrameImage from "@/components/ui/FrameImage";
 import Icon from "@/components/ui/Icon";
 import Magnetic from "@/components/ui/Magnetic";
 import { EmptyState, ErrorState, LoadingState } from "@/components/ui/StatePanels";
-import { productImageOf, type Product } from "./Products";
+import { productImageOf } from "./Products";
 import { externalProps, isExternalHref } from "@/utils/href";
 
-interface ProductListResponse {
-  data?: { items?: Product[] };
-}
-
 /**
- * Product detail. The product is looked up by _id from the list endpoint.
- * The gallery shows one large frame plus thumbnails; actions and support
- * copy come from the product itself.
+ * Product detail, loaded from the product details endpoint by _id. The
+ * gallery shows one large frame plus thumbnails; actions and support copy come
+ * from the product itself.
  */
 export default function ProductDetails({ slug }: { slug: string }) {
-  const { data, loading, error, reload } = useApi<ProductListResponse>(
-    () => getProductsApiCall() as Promise<ProductListResponse>,
+  const { data: product, loading, error, reload } = useApi<ProductDetail>(
+    () => getProductDetailsApiCall(slug),
     [slug],
     "Failed to load product details. Please try again.",
   );
-  const product = useMemo(() => (data?.data?.items ?? []).find((item) => item?._id === slug) ?? null, [data, slug]);
   const gallery = useMemo(() => {
     if (!product) return [];
     const images = (product.images ?? []).filter(Boolean);

@@ -2,9 +2,17 @@
 
 import { useEffect, type ReactNode } from "react";
 import { startSmoothScroll } from "@/motion/scroll";
+import PointerFx from "./PointerFx";
+import ScrollProgress from "./ScrollProgress";
 
-/** Mounts the app-wide smooth scroller (Lenis, synced to GSAP). */
+/** Mounts app-wide motion: smooth scroller, pointer spotlight, scroll progress. */
 export default function MotionProvider({ children }: { children: ReactNode }) {
   useEffect(() => startSmoothScroll(), []);
-  return <>{children}</>;
+  return (
+    <>
+      <ScrollProgress />
+      <PointerFx />
+      {children}
+    </>
+  );
 }

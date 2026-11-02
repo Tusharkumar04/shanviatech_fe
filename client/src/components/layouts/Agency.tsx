@@ -32,6 +32,7 @@ export default function Agency({ about }: AgencyProps) {
 
   return (
     <section className="section section--ink" aria-labelledby="about-title">
+      <div className="orbs" aria-hidden="true"><i /><i /><i /></div>
       <div className="wrap">
         <div className="intro-head intro-head--row">
           <div>

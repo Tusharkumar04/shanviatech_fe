@@ -9,6 +9,8 @@ import { getHomeUrl } from "./apiConstaints/homeConstants";
 import { getIndustryUrl } from "./apiConstaints/industriesConstants";
 import { getJobApplicationUrl } from "./apiConstaints/jobConstants";
 import { getProductUrl } from "./apiConstaints/productConstants";
+import { getProjectUrl } from "./apiConstaints/projectConstants";
+import { getWorkUrl } from "./apiConstaints/workConstants";
 import { getLeadershipUrl } from "./apiConstaints/leadershipConstants";
 import { getLegalUrl } from "./apiConstaints/legalConstants";
 import { getReachUsUrl } from "./apiConstaints/reachUsConstants";
@@ -66,7 +68,11 @@ export const getURL = (key: string, params = {}) => {
     case "SURVEY":
       return getSurveyUrl(apiName);
     case "PRODUCT":
-      return getProductUrl(apiName);
+      return getProductUrl(apiName, params);
+    case "PROJECT":
+      return getProjectUrl(apiName);
+    case "WORK":
+      return getWorkUrl(apiName);
     default:
       throw new Error(`URL key "${key}" is not defined.`);
   }

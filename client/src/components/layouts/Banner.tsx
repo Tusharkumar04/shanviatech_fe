@@ -98,6 +98,45 @@ export default function Banner({
     return () => disposers.forEach((d) => d());
   }, [index, count, introDone, reduced]);
 
+  // Pointer parallax: the picture drifts with the mouse and the headline moves
+  // the other way, giving the hero depth. Fine pointers only; reduced motion off.
+  useEffect(() => {
+    const el = root.current;
+    if (!el || reduced || !introDone || typeof window === "undefined") return;
+    if (!window.matchMedia("(pointer: fine)").matches) return;
+    ensureGsap();
+    const media = el.querySelector<HTMLElement>(".hero__media");
+    const copy = el.querySelector<HTMLElement>(".hero__slides");
+    if (!media || !copy) return;
+    const mx = gsap.quickTo(media, "x", { duration: 1.1, ease: "power3.out" });
+    const my = gsap.quickTo(media, "y", { duration: 1.1, ease: "power3.out" });
+    const cx = gsap.quickTo(copy, "x", { duration: 1.4, ease: "power3.out" });
+    const cy = gsap.quickTo(copy, "y", { duration: 1.4, ease: "power3.out" });
+    const onMove = (event: PointerEvent) => {
+      const rect = el.getBoundingClientRect();
+      const nx = (event.clientX - rect.left) / rect.width - 0.5;
+      const ny = (event.clientY - rect.top) / rect.height - 0.5;
+      mx(nx * -18);
+      my(ny * -12);
+      cx(nx * 10);
+      cy(ny * 6);
+    };
+    const onLeave = () => {
+      mx(0);
+      my(0);
+      cx(0);
+      cy(0);
+    };
+    el.addEventListener("pointermove", onMove, { passive: true });
+    el.addEventListener("pointerleave", onLeave);
+    return () => {
+      el.removeEventListener("pointermove", onMove);
+      el.removeEventListener("pointerleave", onLeave);
+      gsap.killTweensOf([media, copy]);
+      gsap.set([media, copy], { clearProps: "x,y" });
+    };
+  }, [introDone, reduced, count]);
+
   // Autoplay progress.
   useEffect(() => {
     const bar = progress.current;
